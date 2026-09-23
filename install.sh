@@ -37,7 +37,7 @@ VPY="$DIR/.venv/Scripts/python.exe"
 [ -x "$VPY" ] || VPY="$DIR/.venv/bin/python"
 
 "$VPY" -m pip install --quiet --upgrade pip
-"$VPY" -m pip install --quiet -r "$DIR/requirements.txt"
+"$VPY" -m pip install --quiet --upgrade -r "$DIR/requirements.txt"  # rerun = latest yt-dlp
 if [ "$LOGIN" = 1 ]; then
   echo "  installing the login window (Playwright)"
   "$VPY" -m pip install --quiet playwright

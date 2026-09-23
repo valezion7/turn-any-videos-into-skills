@@ -1,6 +1,7 @@
 """The four ways TAVIS can think: your Claude Code plan, the Anthropic API, Ollama, or no AI at all."""
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -91,12 +92,33 @@ class Ollama:
 
     @staticmethod
     def models():
+        """Installed chat models, the best candidate first.
+
+        Embedding and coding models write poor cards, and "uncensored" fine-tunes are the
+        worst at raising warnings, so they go last. Among the rest the largest wins, up to
+        TAVIS_OLLAMA_MAX_B billion parameters (default 40) so it still fits a normal machine."""
         try:
             with urllib.request.urlopen(OLLAMA_URL + "/api/tags", timeout=3) as r:
-                names = [m["name"] for m in json.load(r).get("models", [])]
+                found = json.load(r).get("models", [])
         except (OSError, ValueError):
             return []
-        return [n for n in names if not any(x in n for x in ("embed", "bge", "nomic", "minilm"))]
+        cap = float(os.environ.get("TAVIS_OLLAMA_MAX_B", 40))
+
+        def billions(m):
+            size = str((m.get("details") or {}).get("parameter_size", "0")).upper()
+            try:
+                return float(size[:-1]) / (1000 if size.endswith("M") else 1)
+            except ValueError:
+                return 0.0
+
+        chat = [m for m in found if not re.search(r"embed|bge|nomic|minilm|bert", m["name"] + str(
+            (m.get("details") or {}).get("family", "")), re.I)]
+
+        def rank(m):
+            n, b = m["name"].lower(), billions(m)
+            return (bool(re.search(r"coder|code", n)), bool(re.search(r"unc|uncensored|abliterat", n)),
+                    b > cap, -b if b <= cap else b)
+        return [m["name"] for m in sorted(chat, key=rank)]
 
     @classmethod
     def default_model(cls):

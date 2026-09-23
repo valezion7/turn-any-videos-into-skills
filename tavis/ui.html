@@ -38,9 +38,14 @@ button.chip{cursor:pointer}
 @media (max-width:900px){.grid{grid-template-columns:1fr}.rail{border-right:0;border-bottom:1px solid var(--line)}.main{padding:24px 16px 60px}.top{flex-wrap:wrap;padding:18px 16px}.chips{margin-left:0;justify-content:flex-start}}
 
 .label{font:600 .7rem/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ember);margin:0 0 12px}
-.tabs{display:flex;border:1px solid var(--line2);border-radius:6px;overflow:hidden;margin-bottom:10px}
-.tabs button{flex:1;background:none;border:0;padding:9px 6px;color:var(--grey);cursor:pointer;font-size:.86rem}
-.tabs button[aria-selected=true]{background:var(--field);color:var(--paper);box-shadow:inset 0 -2px 0 var(--ember)}
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.presets button{display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 6px 9px;color:var(--grey);cursor:pointer;font-size:.84rem}
+.presets button:hover{border-color:var(--line2);color:var(--paper)}
+.presets button[aria-selected=true]{border-color:var(--ember);color:var(--paper);background:var(--field)}
+.presets .glyph{font:600 1.05rem/1 var(--mono);color:var(--ember)}
+.field{position:relative;flex:1;min-width:0}
+.field .at{position:absolute;left:12px;top:50%;transform:translateY(-50%);font:600 .9rem var(--mono);color:var(--ember);pointer-events:none}
+.field.with-at input{padding-left:28px}
 .row{display:flex;gap:8px}
 input[type=text],select,textarea{width:100%;background:var(--field);border:1px solid var(--line2);border-radius:6px;padding:10px 12px}
 input[type=text]{font-family:var(--mono);font-size:.86rem}
@@ -131,16 +136,17 @@ a.t:hover{color:var(--ember)}
 <aside class="rail">
   <section>
     <p class="label">1 · Pick a video</p>
-    <div class="tabs" role="tablist">
-      <button type="button" role="tab" data-mode="link" aria-selected="true">Link</button>
-      <button type="button" role="tab" data-mode="tiktok" aria-selected="false">TikTok creator</button>
-      <button type="button" role="tab" data-mode="youtube" aria-selected="false">YouTube</button>
+    <div class="presets" role="tablist" aria-label="Where the video is">
+      <button type="button" role="tab" data-mode="tiktok" aria-selected="true"><span class="glyph">♪</span>TikTok</button>
+      <button type="button" role="tab" data-mode="youtube" aria-selected="false"><span class="glyph">▶</span>YouTube</button>
+      <button type="button" role="tab" data-mode="link" aria-selected="false"><span class="glyph">↗</span>Link</button>
     </div>
     <form id="srcForm" class="row">
-      <input type="text" id="src" autocomplete="off" spellcheck="false" placeholder="https://www.tiktok.com/@…/video/…">
-      <button class="go" id="srcBtn" type="submit">Use</button>
+      <div class="field"><span class="at" id="at">@</span>
+        <input type="text" id="src" autocomplete="off" spellcheck="false" placeholder="username"></div>
+      <button class="go" id="srcBtn" type="submit">Show videos</button>
     </form>
-    <p class="hint" id="srcHint">Any link yt-dlp understands: TikTok, YouTube, Instagram, Vimeo…</p>
+    <p class="hint" id="srcHint"></p>
     <div class="videos" id="videos"></div>
   </section>
 
@@ -247,32 +253,43 @@ $("#chipLogin").onclick = async () => {
   setTimeout(loadStatus, 400);
 };
 
-const HINTS = {
-  link: ["https://www.tiktok.com/@…/video/…", "Any link yt-dlp understands: TikTok, YouTube, Instagram, Vimeo…", "Use"],
-  tiktok: ["@creator", "Lists the creator's latest videos. TikTok needs you signed in (chip at the top).", "List"],
-  youtube: ["@channel or search words", "A @channel lists its videos; anything else searches YouTube.", "Find"],
+const PRESETS = {
+  tiktok: {at: true, ph: "username", btn: "Show videos",
+    hint: "Just the username. TikTok wants you signed in: use the chip at the top once."},
+  youtube: {at: true, ph: "channel, or search words", btn: "Show videos",
+    hint: "A channel name lists its latest videos. Words with spaces search YouTube."},
+  link: {at: false, ph: "https://…", btn: "Use",
+    hint: "Any video link: TikTok, YouTube, Instagram, Vimeo and about 1,800 other sites."},
 };
-document.querySelectorAll("[role=tab]").forEach(t => t.onclick = () => {
-  document.querySelectorAll("[role=tab]").forEach(x => x.setAttribute("aria-selected", x === t));
-  mode = t.dataset.mode;
-  const [ph, hint, btn] = HINTS[mode];
-  $("#src").placeholder = ph; $("#srcHint").textContent = hint; $("#srcBtn").textContent = btn;
-  $("#videos").innerHTML = ""; $("#src").focus();
-});
+function setMode(m) {
+  mode = PRESETS[m] ? m : "tiktok";
+  document.querySelectorAll("[role=tab]").forEach(x => x.setAttribute("aria-selected", x.dataset.mode === mode));
+  const p = PRESETS[mode];
+  $("#at").hidden = !p.at; $(".field").classList.toggle("with-at", p.at);
+  $("#src").placeholder = p.ph; $("#srcHint").textContent = p.hint; $("#srcBtn").textContent = p.btn;
+  $("#videos").innerHTML = "";  // the username stays: switching platform keeps what you typed
+  localSet("mode", mode);
+}
+document.querySelectorAll("[role=tab]").forEach(t => t.onclick = () => { setMode(t.dataset.mode); $("#src").focus(); });
+setMode(localGet("mode") || "tiktok");
+$("#src").value = localGet("who") || "";
 
 function choose(url, label) {
   chosen = url; $("#learnBtn").disabled = !url;
-  $("#learnBtn").textContent = url ? "Learn from this video" : "Learn from this video";
   if (label) $("#srcHint").textContent = "Selected: " + label;
 }
-$("#src").oninput = () => { if (mode === "link") choose($("#src").value.trim().startsWith("http") ? $("#src").value.trim() : ""); };
+const isLink = v => /^https?:\/\//.test(v);
+$("#src").oninput = () => { if (PRESETS[mode].at && $("#src").value.startsWith("@")) $("#src").value = $("#src").value.slice(1);
+  const v = $("#src").value.trim(); if (isLink(v)) choose(v); else if (mode === "link") choose(""); };
 $("#srcForm").onsubmit = async e => {
   e.preventDefault();
   const q = $("#src").value.trim(); if (!q) return;
-  if (mode === "link") { choose(q); return $("#learnBtn").click(); }
+  if (!isLink(q)) localSet("who", q);
+  if (mode === "link" || isLink(q)) { if (!isLink(q)) { $("#srcHint").textContent = "That is not a link. Paste one that starts with https://"; return; }
+    choose(q); return $("#learnBtn").click(); }
   const box = $("#videos"); box.innerHTML = '<p class="hint">Looking…</p>'; $("#srcBtn").disabled = true;
   try {
-    const j = await waitJob((await api("/api/list", {query: q, platform: mode})).job);
+    const j = await waitJob((await api("/api/list", {query: q.replace(/^@/, ""), platform: mode})).job);
     box.innerHTML = j.videos.length ? "" : '<p class="hint">No videos found.</p>';
     j.videos.forEach(v => {
       const b = document.createElement("button"); b.type = "button";
@@ -381,6 +398,7 @@ async function loadHistory() {
   });
 }
 loadStatus(); loadHistory();
+setInterval(() => { if (!document.hidden) loadStatus().catch(() => {}); }, 15000);
 </script>
 </body>
 </html>

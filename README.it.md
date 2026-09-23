@@ -18,9 +18,9 @@ Gli dai un video che insegna qualcosa. Ne esce una scheda da leggere e, se la ap
 
 *[Read in English](README.md)*
 
-![La scheda di un video di 23 minuti sui prompt: il metodo resta, la sponsorizzazione, il corso in vendita e i numeri senza prove vengono segnalati](docs/card.png)
+![TAVIS su un video TikTok: verdetto 'non vale', con avvertimenti su una promozione a colpi di DM, risparmi non dimostrati e un comando d'installazione ricevuto in privato](docs/card.png)
 
-*Una scheda vera. Il video è "Unlock Claude God-Mode in 20 Minutes". TAVIS ha tenuto il metodo per scrivere prompt e ha segnalato altre quattro cose: lo spot con link affiliato, il corso che il creator vende, le statistiche che nessuno può verificare e una funzione presentata come gratuita che non lo è. A Claude non arriva niente finché non premi Approva.*
+*Una scheda vera, su un TikTok di 46 secondi senza sottotitoli, trascritto da Whisper in locale. Verdetto: **non vale una skill**. È un "commenta HEADROOM e ti mando il link in DM" che promuove un tool. TAVIS segnala che il risparmio del 60-90% non è dimostrato e che non conviene incollare in Claude Code un comando d'installazione ricevuto in privato. Fa notare anche che, con un abbonamento fisso, quel risparmio di token non vale soldi. Su un video YouTube di 23 minuti, "Unlock Claude God-Mode", ha tenuto il metodo per scrivere prompt e ha segnalato lo spot con link affiliato, il corso in vendita e i numeri che nessuno può verificare. A Claude non arriva niente finché non premi Approva.*
 
 ---
 
@@ -42,7 +42,7 @@ bash install.sh --all
 tavis
 ```
 
-Si apre il browser su `http://127.0.0.1:4747`. Incolli il link di un video, premi **Learn**, leggi la scheda e premi **Approve**. La skill finisce in `~/.claude/skills/`, e Claude Code la usa dalla sessione successiva.
+Si apre il browser su `http://127.0.0.1:4747`. Scegli **TikTok** o **YouTube** e scrivi solo il nome utente, che resta anche se cambi social; oppure scegli **Link** e incolla il link di un video qualsiasi. Premi **Learn**, leggi la scheda e premi **Approve**. La skill finisce in `~/.claude/skills/`, e Claude Code la usa dalla sessione successiva.
 
 Da terminale:
 
@@ -81,7 +81,7 @@ Gli avvertimenti sono la ragione per cui l'approvazione è manuale. Molti video 
 |---|---|---|---|
 | `claude-code` **(predefinito)** | incluso nel tuo abbonamento Claude | [Claude Code](https://claude.com/claude-code) installato e con l'accesso fatto | gira `claude -p` con **tutti gli strumenti spenti**, senza i tuoi hook e impostazioni |
 | `anthropic` | a consumo | `ANTHROPIC_API_KEY` nell'ambiente | modello: `TAVIS_ANTHROPIC_MODEL` (predefinito `claude-sonnet-5`) |
-| `ollama` | gratis, offline | [Ollama](https://ollama.com) con un modello chat | coi modelli piccoli le schede vengono più povere. `TAVIS_OLLAMA_MODEL`; `TAVIS_OLLAMA_NUM_GPU=0` lo tiene fuori dalla GPU |
+| `ollama` | gratis, offline | [Ollama](https://ollama.com) con un modello chat | **rilevato da solo**: TAVIS sceglie il miglior modello chat che hai installato. I modelli per il codice, di embedding e "uncensored" vanno in fondo; tra gli altri vince il più grande fino a `TAVIS_OLLAMA_MAX_B`=40B. Un secondo passaggio completa i consigli e gli avvertimenti che i modelli locali tendono a saltare. Per scegliere tu: `TAVIS_OLLAMA_MODEL`. Per tenerlo fuori dalla GPU: `TAVIS_OLLAMA_NUM_GPU=0` |
 | `none` | gratis | niente | estrae le frasi che sembrano passi e **dichiara** che nessun modello ha letto il video |
 
 ### Tre modi di trascrivere
@@ -100,7 +100,7 @@ Ormai TikTok chiede l'accesso anche solo per aprire un video. TAVIS **non ti chi
 tavis login
 ```
 
-Si apre una finestra del browser con un profilo tutto suo, e tu entri come fai sempre. TAVIS aspetta il cookie di sessione di TikTok e salva **solo i cookie di tiktok.com** in `~/.tavis/cookies.txt`. Nell'interfaccia fa lo stesso il bottone **TikTok** in alto.
+Si apre una finestra del browser con un profilo tutto suo, direttamente sul **QR code** di TikTok. Lo inquadri con l'app TikTok dal telefono ed è fatto: nessuna password scritta da nessuna parte. In quella finestra funzionano anche gli altri modi di accesso di TikTok. TAVIS aspetta il cookie di sessione di TikTok e salva **solo i cookie di tiktok.com** in `~/.tavis/cookies.txt`. Nell'interfaccia fa lo stesso il bottone **TikTok** in alto.
 
 > Perché non usa il tuo Chrome di tutti i giorni? Su Windows Chrome tiene bloccato il database dei cookie mentre è aperto, e lo cifra con una chiave che solo lui sa leggere: `yt-dlp --cookies-from-browser chrome` lì fallisce. Su macOS o Linux con Firefox funziona anche `export TAVIS_COOKIES_FROM_BROWSER=firefox`.
 
@@ -136,7 +136,7 @@ tavis doctor           cosa è installato, quali cervelli sono pronti
 - **Un avvertimento può sfuggire.** "Nessun avvertimento" è la lettura del modello, non una garanzia.
 - **I video molto lunghi vengono tagliati** per stare nel modello (150.000 caratteri con Claude, 40.000 con Ollama), e la scheda dice dove.
 - **Termini di servizio.** Le piattaforme vietano in vari modi lo scaricamento automatico. TAVIS legge i sottotitoli e, solo per Whisper, l'audio. È pensato per video che hai il diritto di guardare, e l'uso che ne fai è una tua responsabilità.
-- **Su TikTok il percorso funziona come progettato, ma è stato provato meno che su YouTube.** Se vedi qualcosa che non va, apri una issue.
+- **TikTok cambia spesso.** Elenco dei video di un creator e lettura di un video funzionano oggi (provati con `tavis login` e yt-dlp 2026.08.19 con `curl_cffi`). Quando TikTok cambia le sue pagine, rilanciare `bash install.sh` porta l'ultima versione di yt-dlp.
 
 ## Contribuire
 

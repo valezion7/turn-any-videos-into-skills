@@ -11,7 +11,7 @@ import time
 
 from .source import COOKIES, HOME
 
-LOGIN_URL = "https://www.tiktok.com/login"
+LOGIN_URL = "https://www.tiktok.com/login/qrcode"  # scan it with the TikTok app: no password typed anywhere
 
 
 def _netscape(cookies):
@@ -46,7 +46,8 @@ def login(timeout=600, say=print):
         ctx = _launch(p)
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         page.goto(LOGIN_URL)
-        say("A browser window is open. Sign in to TikTok there; TAVIS waits and never sees your password.")
+        say("A browser window shows a TikTok QR code. Scan it with the TikTok app on your phone "
+            "(Profile > menu > QR code scanner), or pick another way to sign in there. TAVIS never sees a password.")
         deadline = time.time() + timeout
         while time.time() < deadline:
             try:

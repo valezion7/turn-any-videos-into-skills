@@ -19,9 +19,9 @@ Give it a video that teaches something. You get a learning card to read, and a s
 
 *[Leggi in italiano](README.it.md)*
 
-![The learning card for a 23-minute prompting video: the method is kept, and the sponsorship, the course being sold and the unproven numbers are flagged](docs/card.png)
+![TAVIS on a TikTok video: verdict 'not worth it', with warnings about a comment-for-DM promotion, unproven savings and an install command received by DM](docs/card.png)
 
-*A real card, in Italian (the card language is your choice). The video was "Unlock Claude God-Mode in 20 Minutes". TAVIS kept the prompting method. It also flagged the sponsor segment with an affiliate link, the course the creator sells, the statistics nobody can check, and a "free" feature that is not free. Nothing reaches Claude until you click Approve.*
+*A real card, in Italian (the card language is your choice), for a 46-second TikTok with no subtitles, transcribed by local Whisper. Verdict: **not worth a skill**. It is a "comment HEADROOM and I'll DM you the link" promo. TAVIS flags the unproven 60-90% savings and warns against pasting an install command received by DM into Claude Code. It also points out that on a flat subscription those token savings are not money. On a 23-minute YouTube video called "Unlock Claude God-Mode", it kept the prompting method and flagged the sponsor with its affiliate link, the course being sold and the numbers nobody can check. Nothing reaches Claude until you click Approve.*
 
 ---
 
@@ -43,7 +43,7 @@ bash install.sh --all
 tavis
 ```
 
-Your browser opens on `http://127.0.0.1:4747`. Paste a video link, press **Learn**, read the card, then **Approve**. The skill is now in `~/.claude/skills/`, and Claude Code uses it in your next session.
+Your browser opens on `http://127.0.0.1:4747`. Pick **TikTok** or **YouTube** and type just the username (it stays when you switch platform), or pick **Link** and paste any video link. Press **Learn**, read the card, then **Approve**. The skill is now in `~/.claude/skills/`, and Claude Code uses it in your next session.
 
 Prefer the terminal?
 
@@ -99,7 +99,7 @@ The warnings are the reason approval is manual. Many "educational" videos sell s
 |---|---|---|---|
 | `claude-code` **(default)** | included in your Claude plan | [Claude Code](https://claude.com/claude-code) installed and logged in | runs `claude -p` with **every tool disabled** and without your hooks or settings |
 | `anthropic` | pay per use | `ANTHROPIC_API_KEY` in the environment | model: `TAVIS_ANTHROPIC_MODEL` (default `claude-sonnet-5`) |
-| `ollama` | free, offline | [Ollama](https://ollama.com) with a chat model | thinner cards on small models. `TAVIS_OLLAMA_MODEL`; `TAVIS_OLLAMA_NUM_GPU=0` keeps it off the GPU |
+| `ollama` | free, offline | [Ollama](https://ollama.com) with a chat model | **detected automatically**, and TAVIS picks your best installed chat model on its own (coding, embedding and "uncensored" models go last, largest up to `TAVIS_OLLAMA_MAX_B`=40B wins). A second pass fills in the advice and warnings that local models tend to skip. Override with `TAVIS_OLLAMA_MODEL`; `TAVIS_OLLAMA_NUM_GPU=0` keeps it off the GPU |
 | `none` | free | nothing | extracts the sentences that look like steps and **says plainly** that no model read the video |
 
 ### Three transcript options
@@ -118,7 +118,7 @@ TikTok now asks you to be logged in even to open a single video. TAVIS **never a
 tavis login
 ```
 
-This opens a browser window with its own profile. You sign in there, the way you normally do. TAVIS waits for TikTok's session cookie, then saves **only the tiktok.com cookies** to `~/.tavis/cookies.txt`. In the interface, the **TikTok** chip at the top does the same.
+This opens a browser window with its own profile, straight on TikTok's **QR code**: scan it with the TikTok app on your phone and you are done, no password typed anywhere. Any other TikTok sign-in method works in that window too. TAVIS waits for TikTok's session cookie, then saves **only the tiktok.com cookies** to `~/.tavis/cookies.txt`. In the interface, the **TikTok** chip at the top does the same.
 
 > Why not reuse your everyday Chrome? On Windows, Chrome locks its cookie database while it runs and encrypts it with a key only Chrome can read, so `yt-dlp --cookies-from-browser chrome` fails there. On macOS or Linux with Firefox, `export TAVIS_COOKIES_FROM_BROWSER=firefox` works too.
 
@@ -201,7 +201,7 @@ tavis doctor           what is installed, which brains are ready
 
 **Can a video hijack Claude through its transcript?** The transcript is treated as data. Claude Code runs with every tool disabled, in an empty folder, without your hooks or settings. The prompt tells the model to report instructions aimed at an AI as a `manipulation` warning. The worst case is a bad card, and you read the card before anything is written.
 
-**Which sites work?** Anything [yt-dlp supports](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md). It has been tested on YouTube. TikTok needs `tavis login`. Creator listing on TikTok needs it too.
+**Which sites work?** Presets for TikTok and YouTube (username or channel). Anything else [yt-dlp supports](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) works through **Link**. Instagram has no preset: its profile pages cannot be listed without an official API, so paste the reel link instead. TikTok needs `tavis login`, even for a single video.
 
 **Can I edit a skill before installing it?** Yes: name, description and body are editable on the card. After installing, it is a plain Markdown file.
 
@@ -213,7 +213,7 @@ tavis doctor           what is installed, which brains are ready
 - **Warnings can be missed.** "No warnings found" is the brain's reading, not a guarantee.
 - **Very long videos are cut** to fit the model (150,000 characters for Claude, 40,000 for Ollama), and the card says where.
 - **Terms of service.** Platforms forbid automated downloading in various ways. TAVIS reads subtitles and, only for Whisper, audio. It is meant for videos you have the right to watch. You are responsible for how you use it.
-- **The TikTok path works as designed, but has had less testing than YouTube.** Please open an issue with what you see.
+- **TikTok changes often.** Listing a creator and reading a video work today (tested with `tavis login` and yt-dlp 2026.08.19 with `curl_cffi`). When TikTok changes its pages, `bash install.sh` again pulls the latest yt-dlp.
 
 ## Contributing
 

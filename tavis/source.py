@@ -38,9 +38,20 @@ def _base():
     return cmd
 
 
+def _impersonate(args):
+    """TikTok answers empty pages to clients that do not look like a browser."""
+    if not any("tiktok" in str(a) for a in args):
+        return []
+    try:
+        import curl_cffi  # noqa: F401
+        return ["--impersonate", "chrome"]
+    except ImportError:
+        return []
+
+
 def _run(args, timeout=180):
     try:
-        r = subprocess.run(_base() + args, capture_output=True, text=True,
+        r = subprocess.run(_base() + _impersonate(args) + args, capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=timeout)
     except subprocess.TimeoutExpired:
         raise SourceError("yt-dlp took too long. Check your connection and try again.")
