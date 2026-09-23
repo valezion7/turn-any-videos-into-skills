@@ -1,0 +1,189 @@
+"""The local interface: http://127.0.0.1:4747. Standard library only.
+
+Only this machine can reach it, and every API call must carry a token that is printed into
+the page at start-up, so another website open in your browser cannot drive it."""
+import json
+import secrets
+import threading
+import traceback
+import uuid
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+from . import __version__, brain, card, learn, source, transcribe
+
+TOKEN = secrets.token_urlsafe(24)
+JOBS = {}
+LOGIN = {"state": "idle", "message": ""}
+PAGE = (Path(__file__).parent / "ui.html").read_text(encoding="utf-8")
+
+
+def _job(fn):
+    jid = uuid.uuid4().hex[:12]
+    JOBS[jid] = {"done": False, "log": [], "error": None}
+
+    def run():
+        try:
+            JOBS[jid].update(fn(lambda m: JOBS[jid]["log"].append(m)))
+        except Exception as e:  # shown to the user as-is: the messages are written for people
+            if not isinstance(e, (source.SourceError, brain.BrainError, ValueError)):
+                traceback.print_exc()
+            JOBS[jid]["error"] = str(e)
+        JOBS[jid]["done"] = True
+
+    threading.Thread(target=run, daemon=True).start()
+    return jid
+
+
+def _do_login():
+    from . import login
+    LOGIN.update(state="running", message="Sign in in the browser window that just opened.")
+    try:
+        login.login(say=lambda m: LOGIN.update(message=m))
+        LOGIN.update(state="done", message="Signed in to TikTok.")
+    except Exception as e:
+        LOGIN.update(state="error", message=str(e))
+
+
+def status():
+    return {"version": __version__, "brains": brain.status(), "ollama_models": brain.Ollama.models(),
+            "logged_in": source.logged_in(), "login": LOGIN, "whisper": transcribe.whisper_available(),
+            "profile": card.load_profile(), "langs": card.LANGS, "skills_dir": str(card.SKILLS_DIR)}
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "tavis"
+
+    def log_message(self, *a):
+        pass
+
+    def _send(self, code, body, kind="application/json; charset=utf-8"):
+        data = body if isinstance(body, bytes) else (body if isinstance(body, str) else
+                                                     json.dumps(body, ensure_ascii=False)).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", kind)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _allowed(self):
+        host = (self.headers.get("Host") or "").split(":")[0]
+        if host not in ("127.0.0.1", "localhost"):  # blocks DNS-rebinding tricks
+            self._send(403, {"error": "local use only"})
+            return False
+        if urlparse(self.path).path.startswith("/api/") and self.headers.get("X-Tavis-Token") != TOKEN:
+            self._send(403, {"error": "missing token: reload the page"})
+            return False
+        return True
+
+    def _body(self):
+        n = min(int(self.headers.get("Content-Length") or 0), 2_000_000)
+        return json.loads(self.rfile.read(n) or b"{}")
+
+    def do_GET(self):
+        if not self._allowed():
+            return
+        u = urlparse(self.path)
+        q = {k: v[0] for k, v in parse_qs(u.query).items()}
+        if u.path == "/":
+            return self._send(200, PAGE.replace("__TOKEN__", TOKEN).replace("__VERSION__", __version__),
+                              "text/html; charset=utf-8")
+        if u.path == "/api/status":
+            return self._send(200, status())
+        if u.path == "/api/job":
+            j = JOBS.get(q.get("id", ""))
+            return self._send(200, j) if j else self._send(404, {"error": "unknown job"})
+        if u.path == "/api/history":
+            return self._send(200, {"items": card.list_history()})
+        if u.path == "/api/card":
+            rec = card.load_history(q.get("key", ""))
+            return self._send(200, rec) if rec else self._send(404, {"error": "not found"})
+        self._send(404, {"error": "not found"})
+
+    def do_POST(self):
+        if not self._allowed():
+            return
+        path = urlparse(self.path).path
+        try:
+            b = self._body()
+        except ValueError:
+            return self._send(400, {"error": "invalid JSON"})
+        try:
+            if path == "/api/list":
+                jid = _job(lambda log: {"videos": source.list_videos(b.get("query", ""), b.get("platform", "tiktok"))})
+                return self._send(200, {"job": jid})
+            if path == "/api/learn":
+                url = (b.get("url") or "").strip()
+                if not url.startswith("http"):
+                    return self._send(400, {"error": "Paste a full link that starts with http."})
+
+                def work(log):
+                    meta, c = learn(url, b.get("brain", "claude-code"), b.get("transcriber", "auto"),
+                                    b.get("lang", "en"), b.get("model") or None, progress=log)
+                    return {"meta": meta, "card": c, "key": card.history_key(meta)}
+                return self._send(200, {"job": _job(work)})
+            if path == "/api/profile":
+                card.save_profile(b.get("text", ""))
+                return self._send(200, {"ok": True})
+            if path == "/api/render":
+                rec = card.load_history(b.get("key", ""))
+                if not rec:
+                    return self._send(404, {"error": "not found"})
+                rec["card"]["skill"].update(_skill_fields(b.get("skill") or {}))
+                return self._send(200, {"text": card.render_skill(rec["card"], rec["meta"]),
+                                        "path": str(card.skill_path(rec["card"]["skill"]["name"]))})
+            if path == "/api/approve":
+                rec = card.load_history(b.get("key", ""))
+                if not rec:
+                    return self._send(404, {"error": "not found"})
+                rec["card"]["skill"].update(_skill_fields(b.get("skill") or {}))
+                try:
+                    p = card.install_skill(rec["card"], rec["meta"], overwrite=bool(b.get("overwrite")))
+                except FileExistsError as e:
+                    return self._send(409, {"error": f"A skill already lives at {e}.", "path": str(e)})
+                card.save_history(rec["meta"], rec["card"], "approved")
+                return self._send(200, {"path": str(p)})
+            if path == "/api/reject":
+                rec = card.load_history(b.get("key", ""))
+                if rec:
+                    card.save_history(rec["meta"], rec["card"], "rejected")
+                return self._send(200, {"ok": True})
+            if path == "/api/login":
+                if LOGIN["state"] != "running":
+                    threading.Thread(target=_do_login, daemon=True).start()
+                return self._send(200, {"ok": True})
+            if path == "/api/logout":
+                from . import login
+                login.logout()
+                return self._send(200, {"ok": True})
+        except Exception as e:
+            traceback.print_exc()
+            return self._send(500, {"error": str(e)})
+        self._send(404, {"error": "not found"})
+
+
+def _skill_fields(s):
+    out = {}
+    if s.get("name"):
+        out["name"] = card.slugify(s["name"])
+    if "description" in s:
+        d = " ".join(str(s["description"]).split())
+        out["description"] = d if d.lower().startswith("use when") or not d else "Use when " + d
+    if "body" in s:
+        out["body"] = str(s["body"]).strip()
+    return out
+
+
+def serve(port=4747, open_browser=True):
+    httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    url = f"http://127.0.0.1:{port}"
+    print(f"  TAVIS is running at {url}   (Ctrl+C to stop)", flush=True)
+    if open_browser:
+        import webbrowser
+        threading.Timer(0.6, webbrowser.open, [url]).start()
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\n  stopped.")
