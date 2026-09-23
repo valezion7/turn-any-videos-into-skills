@@ -25,7 +25,7 @@ def _job(fn):
 
     def run():
         try:
-            JOBS[jid].update(fn(lambda m: JOBS[jid]["log"].append(m)))
+            JOBS[jid].update(fn(lambda m: JOBS[jid]["log"].append(m), JOBS[jid]))
         except Exception as e:  # shown to the user as-is: the messages are written for people
             if not isinstance(e, (source.SourceError, brain.BrainError, ValueError)):
                 traceback.print_exc()
@@ -46,9 +46,18 @@ def _do_login():
         LOGIN.update(state="error", message=str(e))
 
 
+SETUP = source.HOME / "setup.json"
+STARTER_MODEL = "qwen3:8b"  # ~5 GB, runs on most machines with 16 GB of RAM
+
+
 def status():
+    import shutil
     return {"version": __version__, "brains": brain.status(), "ollama_models": brain.Ollama.models(),
+            "setup_done": SETUP.exists(), "starter_model": STARTER_MODEL,
+            "installed": {"claude": bool(shutil.which("claude")), "ollama": bool(shutil.which("ollama")),
+                          "ollama_running": brain.Ollama.running()},
             "logged_in": source.logged_in(), "login": LOGIN, "whisper": transcribe.whisper_available(),
+            "transcribers": transcribe.status(), "whisper_sizes": transcribe.WHISPER_SIZES,
             "profile": card.load_profile(), "langs": card.LANGS, "skills_dir": str(card.SKILLS_DIR)}
 
 
@@ -97,6 +106,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, j) if j else self._send(404, {"error": "unknown job"})
         if u.path == "/api/history":
             return self._send(200, {"items": card.list_history()})
+        if u.path == "/api/skills":
+            return self._send(200, {"items": card.installed_skills()})
+        if u.path == "/api/skill":
+            try:
+                return self._send(200, {"name": card.slugify(q.get("name", "")), "text": card.read_skill(q.get("name", "")),
+                                        "path": str(card.skill_path(q.get("name", "")))})
+            except FileNotFoundError:
+                return self._send(404, {"error": "no such skill"})
         if u.path == "/api/card":
             rec = card.load_history(q.get("key", ""))
             return self._send(200, rec) if rec else self._send(404, {"error": "not found"})
@@ -112,18 +129,41 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(400, {"error": "invalid JSON"})
         try:
             if path == "/api/list":
-                jid = _job(lambda log: {"videos": source.list_videos(b.get("query", ""), b.get("platform", "tiktok"))})
+                jid = _job(lambda log, job: {"videos": source.list_videos(b.get("query", ""), b.get("platform", "tiktok"))})
                 return self._send(200, {"job": jid})
             if path == "/api/learn":
                 url = (b.get("url") or "").strip()
                 if not url.startswith("http"):
                     return self._send(400, {"error": "Paste a full link that starts with http."})
 
-                def work(log):
+                def work(log, job):
                     meta, c = learn(url, b.get("brain", "claude-code"), b.get("transcriber", "auto"),
-                                    b.get("lang", "en"), b.get("model") or None, progress=log)
+                                    b.get("lang", "en"), b.get("model") or None, progress=log,
+                                    on_meta=lambda m: job.update(preview=m), whisper_size=b.get("whisper_size") or None)
                     return {"meta": meta, "card": c, "key": card.history_key(meta)}
                 return self._send(200, {"job": _job(work)})
+            if path == "/api/setup":
+                SETUP.parent.mkdir(parents=True, exist_ok=True)
+                SETUP.write_text(json.dumps({"done": True, "brain": b.get("brain")}), encoding="utf-8")
+                return self._send(200, {"ok": True})
+            if path == "/api/pull":
+                model = b.get("model") or STARTER_MODEL
+                return self._send(200, {"job": _job(lambda log, job: (brain.Ollama.pull(model, log), {"model": model})[1])})
+            if path == "/api/skill/save":
+                try:
+                    p = card.write_skill(b.get("name", ""), b.get("text", ""))
+                except FileNotFoundError:
+                    return self._send(404, {"error": "no such skill"})
+                except ValueError as e:
+                    return self._send(400, {"error": str(e)})
+                return self._send(200, {"path": str(p)})
+            if path == "/api/skill/ai":
+                thinker = brain.get(b.get("brain", "claude-code"), b.get("model") or None)
+                text, instruction = b.get("text", ""), (b.get("instruction") or "").strip()
+                if not instruction:
+                    return self._send(400, {"error": "Say what to change."})
+                return self._send(200, {"job": _job(lambda log, job: (log(f"{thinker.label} is editing the skill"),
+                                                                     {"text": card.ai_edit(thinker, text, instruction)})[1])})
             if path == "/api/profile":
                 card.save_profile(b.get("text", ""))
                 return self._send(200, {"ok": True})

@@ -1,1 +1,2 @@
 yt-dlp[default,curl-cffi]>=2026.8.19
+deno

@@ -18,17 +18,38 @@ for arg in "$@"; do
   esac
 done
 
+ask() {  # ask "question" -> 0 on yes; says yes by itself when nobody is at the keyboard
+  [ -t 0 ] || return 0
+  read -r -p "  $1 [Y/n] " a; case "$a" in [nN]*) return 1 ;; *) return 0 ;; esac
+}
+
 # A real Python 3.9+, not the Windows Store stub that only opens the Store.
-PY=""
-for c in "${PYTHON:-}" python3 python py; do
-  [ -n "$c" ] || continue
-  if command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 9))' 2>/dev/null; then
-    PY="$c"; break
+find_python() {
+  PY=""
+  for c in "${PYTHON:-}" python3 python py \
+           "$LOCALAPPDATA/Programs/Python/Python313/python.exe" "$LOCALAPPDATA/Programs/Python/Python312/python.exe"; do
+    [ -n "$c" ] || continue
+    if command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 9))' 2>/dev/null; then
+      PY="$c"; return 0
+    fi
+  done
+  return 1
+}
+
+if ! find_python; then
+  echo "  Python 3.9 or newer is not installed."
+  if command -v winget >/dev/null 2>&1 && ask "Install Python 3.13 now with winget (Windows' own installer)?"; then
+    winget install -e --id Python.Python.3.13 --scope user --accept-package-agreements --accept-source-agreements
+  elif command -v brew >/dev/null 2>&1 && ask "Install Python with Homebrew?"; then
+    brew install python
+  elif command -v apt-get >/dev/null 2>&1 && ask "Install Python with apt (asks for your password)?"; then
+    sudo apt-get install -y python3 python3-venv
   fi
-done
-if [ -z "$PY" ]; then
-  echo "Python 3.9 or newer is needed: https://www.python.org/downloads/ (tick 'Add to PATH')."
-  exit 1
+  if ! find_python; then
+    echo "  Install Python from https://www.python.org/downloads/ (tick 'Add python.exe to PATH'),"
+    echo "  close this terminal, open a new one and run bash install.sh again."
+    exit 1
+  fi
 fi
 
 echo "  using $("$PY" --version) at $(command -v "$PY")"
@@ -69,4 +90,5 @@ case ":$PATH:" in
   *) echo "  Installed. Add ~/bin to your PATH once, then type tavis:"
      echo "    echo 'export PATH=\"\$HOME/bin:\$PATH\"' >> ~/.bashrc && source ~/.bashrc" ;;
 esac
+echo "  The first time, a short setup in the browser helps you pick who reads the videos."
 echo "  Check the setup any time with:  tavis doctor"

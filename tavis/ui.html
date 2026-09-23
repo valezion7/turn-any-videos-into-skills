@@ -33,9 +33,9 @@ button.chip{cursor:pointer}
 .dot.ok{background:var(--good)} .dot.no{background:var(--bad)}
 
 .grid{display:grid;grid-template-columns:minmax(300px,380px) 1fr;min-height:calc(100vh - 88px)}
-.rail{border-right:1px solid var(--line);padding:24px 24px 60px;display:flex;flex-direction:column;gap:26px}
+.rail{border-right:1px solid var(--line);padding:24px 24px 60px;display:flex;flex-direction:column;gap:26px;position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;scrollbar-width:thin}
 .main{padding:28px 36px 80px;min-width:0}
-@media (max-width:900px){.grid{grid-template-columns:1fr}.rail{border-right:0;border-bottom:1px solid var(--line)}.main{padding:24px 16px 60px}.top{flex-wrap:wrap;padding:18px 16px}.chips{margin-left:0;justify-content:flex-start}}
+@media (max-width:900px){.grid{grid-template-columns:1fr}.rail{border-right:0;border-bottom:1px solid var(--line);position:static;max-height:none}.main{padding:24px 16px 60px}.top{flex-wrap:wrap;padding:18px 16px}.chips{margin-left:0;justify-content:flex-start}}
 
 .label{font:600 .7rem/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ember);margin:0 0 12px}
 .presets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
@@ -79,6 +79,34 @@ details textarea{margin-top:8px;font-family:var(--body);font-size:.88rem}
 @media (max-width:600px){.flow{grid-template-columns:1fr 1fr}}
 
 .progress{font:400 .86rem/1.9 var(--mono);color:var(--grey)}
+.working{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start;max-width:820px}
+.think{font:600 11px/1.1 var(--mono);color:var(--ember);white-space:pre;margin:0}
+.think .eye{display:inline-block}
+.bar{height:2px;background:var(--line);overflow:hidden;margin:14px 0 18px;border-radius:2px;max-width:420px}
+.bar i{display:block;height:100%;width:30%;background:linear-gradient(90deg,transparent,var(--ember),transparent)}
+.preview{display:flex;gap:16px;align-items:flex-start;margin-bottom:6px;min-height:0}
+.thumb{width:96px;aspect-ratio:9/16;object-fit:cover;border-radius:8px;background:var(--field);flex:none;border:1px solid var(--line)}
+.thumb.wide{width:170px;aspect-ratio:16/9}
+.who{display:flex;gap:10px;align-items:center;font-size:.86rem;color:var(--grey);margin-bottom:6px}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--ember2);color:#fff;display:grid;place-items:center;font:700 .8rem var(--display);flex:none;object-fit:cover}
+.preview h3{font:700 1.15rem/1.25 var(--display);margin:0;color:var(--paper);text-wrap:balance}
+.videos .vt{width:34px;height:46px;object-fit:cover;border-radius:4px;background:var(--field);flex:none}
+.videos .vt.wide{width:60px;height:34px}
+.videos button{align-items:center}
+.videos .tt{flex:1;min-width:0}
+.cardhead{display:flex;gap:20px;align-items:flex-start}
+.cardhead .thumb{width:110px}
+.cardhead .thumb.wide{width:200px}
+@media (max-width:600px){.working{grid-template-columns:1fr}.think{display:none}.cardhead{flex-direction:column}}
+@media (prefers-reduced-motion:no-preference){
+  .bar i{animation:sweep 1.6s ease-in-out infinite}
+  @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(340%)}}
+  .think .eye{animation:blink 3.2s infinite}
+  @keyframes blink{0%,92%,100%{opacity:1}95%{opacity:.15}}
+  .think{animation:breathe 2.4s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.75}50%{opacity:1}}
+  .preview,.progress div{animation:in .35s ease-out}
+}
 .progress .now{color:var(--paper)} .progress .now::before{content:"▸ ";color:var(--ember)}
 .err{border-left:3px solid var(--bad);background:var(--panel);padding:14px 18px;white-space:pre-wrap;font-size:.9rem}
 
@@ -102,7 +130,57 @@ a.t:hover{color:var(--ember)}
 .warn:first-of-type{border-top:0}
 .warn .k{font:600 .72rem/1.9 var(--mono);text-transform:uppercase;letter-spacing:.06em}
 .k.sponsored,.k.outdated,.k.unverifiable,.k.other{color:var(--warn)} .k.risky,.k.manipulation,.k.conflict_of_interest{color:var(--bad)}
+.wiz{position:fixed;inset:0;background:rgba(6,5,4,.78);display:grid;place-items:center;padding:16px;z-index:10}
+.wbox{background:var(--panel);border:1px solid var(--line2);border-radius:12px;width:min(660px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:26px 28px}
+.wsteps{display:flex;gap:6px;margin-bottom:18px}
+.wsteps i{height:3px;flex:1;background:var(--line2);border-radius:2px}
+.wsteps i.on{background:var(--ember)}
+.wbox h2{font:700 1.45rem/1.15 var(--display);margin:0 0 6px;text-wrap:balance}
+.wbox .lead{color:var(--grey);margin:0 0 18px;max-width:60ch}
+.opt{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--ember);background:var(--field)}
+.opt.off{opacity:.66;cursor:default}
+.opt input{margin:4px 0 0;accent-color:var(--ember)}
+.opt b{font-weight:600}
+.opt .st{grid-column:2;font-size:.84rem;color:var(--grey)}
+.opt code,.wbox code{font-family:var(--mono);font-size:.8rem;background:var(--ink);padding:1px 5px;border-radius:3px}
+.ok{color:var(--good)} .no{color:var(--dim)}
+.wnav{display:flex;justify-content:space-between;gap:10px;margin-top:20px;align-items:center}
+.wbox textarea{min-height:90px;font-family:var(--body);font-size:.9rem}
+.wbox label:not(.opt){display:flex;flex-direction:column;gap:6px;font-size:.84rem;color:var(--grey);margin-bottom:12px}
+.mini{font-size:.8rem;padding:6px 10px}
+.browse{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:28px;align-items:start}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:14px}
+.vcard{background:none;border:0;padding:0;text-align:left;color:var(--paper);cursor:pointer;display:flex;flex-direction:column;gap:7px}
+.vimg{position:relative;display:block;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:var(--field);border:2px solid transparent}
+.vimg.wide{aspect-ratio:16/9}
+.vimg img{width:100%;height:100%;object-fit:cover;display:block}
+.vcard:hover .vimg{border-color:var(--line2)}
+.vcard.on .vimg{border-color:var(--ember)}
+.dur{position:absolute;right:6px;bottom:6px;font:600 .7rem/1 var(--mono);background:rgba(11,10,9,.8);padding:4px 6px;border-radius:4px}
+.vtitle{font-size:.8rem;line-height:1.35;color:var(--grey);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.vcard.on .vtitle{color:var(--paper)}
+.player{position:sticky;top:20px;display:flex;flex-direction:column;gap:10px}
+.frame{width:100%;aspect-ratio:16/9;border:0;border-radius:10px;background:#000}
+.frame.tall{aspect-ratio:9/16;max-height:calc(100vh - 260px)}
+.frame.noplay{display:grid;place-items:center;gap:8px;padding:12px;aspect-ratio:auto}
+.cover{position:relative;display:block;border-radius:10px;overflow:hidden;background:var(--field);aspect-ratio:16/9}
+.cover.tall{aspect-ratio:9/16;max-height:calc(100vh - 280px)}
+.cover img{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(.8)}
+.cover .play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--ember);color:#fff;font:700 .95rem/1 var(--display);padding:13px 18px;border-radius:99px;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.cover:hover img{filter:brightness(.95)}
+.ptitle{font:700 1.05rem/1.3 var(--display);margin:0;text-wrap:balance}
+@media (max-width:1100px){.browse{grid-template-columns:1fr}.player{position:static;order:-1}.frame.tall{max-height:70vh;width:auto;align-self:center}}
+.editor{max-width:1200px;display:flex;flex-direction:column;gap:14px}
+.ename{font:700 1.6rem/1.1 var(--display);margin:4px 0}
+.ecols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+#edText{min-height:62vh;font:400 .84rem/1.6 var(--mono)}
+.aipanel{position:sticky;top:20px;display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.aipanel .chips{display:flex;flex-wrap:wrap;gap:6px}
+.proposal{white-space:pre-wrap;font:400 .78rem/1.5 var(--mono);background:var(--ink);border:1px solid var(--line);border-radius:6px;padding:12px;max-height:44vh;overflow:auto;margin:0}
+@media (max-width:1000px){.ecols{grid-template-columns:1fr}.aipanel{position:static}}
 .none{color:var(--dim)}
+.added{font:600 .66rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);background:var(--grey);border-radius:3px;padding:2px 5px;margin-left:4px;vertical-align:1px;white-space:nowrap}
 .skill{display:grid;gap:10px}
 .skill label{font-size:.78rem;color:var(--grey);display:flex;flex-direction:column;gap:5px}
 .skill textarea{min-height:300px}
@@ -127,11 +205,20 @@ a.t:hover{color:var(--ember)}
     <p>Turn any video into a skill for Claude · v__VERSION__</p>
   </div>
   <div class="chips">
+    <button class="chip" id="chipSetup" type="button">Setup</button>
     <span class="chip" id="chipBrain"><span class="dot"></span>brain</span>
     <button class="chip" id="chipLogin" type="button"><span class="dot"></span>TikTok</button>
   </div>
 </header>
 
+<div class="wiz" id="wiz" hidden role="dialog" aria-modal="true" aria-labelledby="wTitle">
+  <div class="wbox">
+    <div class="wsteps" id="wSteps"><i></i><i></i><i></i><i></i></div>
+    <div id="wBody"></div>
+    <div class="wnav"><button class="ghost" id="wBack" type="button">Back</button>
+      <button class="go" id="wNext" type="button" style="padding:13px 22px">Next</button></div>
+  </div>
+</div>
 <div class="grid">
 <aside class="rail">
   <section>
@@ -147,7 +234,6 @@ a.t:hover{color:var(--ember)}
       <button class="go" id="srcBtn" type="submit">Show videos</button>
     </form>
     <p class="hint" id="srcHint"></p>
-    <div class="videos" id="videos"></div>
   </section>
 
   <section>
@@ -155,21 +241,23 @@ a.t:hover{color:var(--ember)}
     <div class="opts">
       <label class="wide">Brain<select id="brain"></select></label>
       <label>Card language<select id="lang"></select></label>
-      <label>Transcript<select id="transcriber">
-        <option value="auto">Subtitles, else Whisper</option>
-        <option value="subtitles">Subtitles only</option>
-        <option value="whisper">Local Whisper</option>
-      </select></label>
+      <label>Transcript<select id="transcriber"></select></label>
+      <label id="sizeWrap" hidden>Whisper model<select id="wsize"></select></label>
       <label id="modelWrap" hidden>Ollama model<select id="model"></select></label>
     </div>
     <details style="margin-top:12px">
-      <summary>About you — makes the advice specific</summary>
+      <summary>About you (makes the advice specific)</summary>
       <textarea id="profile" rows="4" placeholder="e.g. I run a 4-person web studio in Italy. Clients are restaurants and small shops. I use Claude Code daily."></textarea>
       <p class="hint">Saved on this computer only (~/.tavis/profile.txt) and sent to the brain you pick.</p>
     </details>
   </section>
 
-  <button class="go big" id="learnBtn" type="button" disabled>Learn from this video</button>
+  <button class="go big" id="learnBtn" type="button" disabled>Skill-ize</button>
+
+  <section>
+    <p class="label">Your skills</p>
+    <div class="hist" id="skills"></div>
+  </section>
 
   <section>
     <p class="label">Recent</p>
@@ -204,25 +292,32 @@ async function api(path, body) {
     headers: {"X-Tavis-Token": TOKEN, "Content-Type": "application/json"},
     body: body ? JSON.stringify(body) : undefined});
   const d = await r.json().catch(() => ({error: "bad response"}));
+  if (r.status === 403 && /token/.test(d.error || "")) {
+    throw new Error("TAVIS was restarted since this page opened. Reload the page (F5) and try again.");
+  }
   if (!r.ok) { const e = new Error(d.error || r.statusText); e.status = r.status; e.data = d; throw e; }
   return d;
 }
 async function waitJob(id, onLog) {
   for (;;) {
     const j = await api("/api/job?id=" + id);
-    onLog && onLog(j.log);
+    onLog && onLog(j.log, j);
     if (j.done) { if (j.error) throw new Error(j.error); return j; }
     await new Promise(r => setTimeout(r, 900));
   }
 }
+const isWide = u => /youtube|youtu\.be|vimeo/.test(u || "");
+const initials = n => (String(n || "?").replace(/^@/, "").match(/[a-z0-9]/gi) || ["?"]).slice(0, 2).join("").toUpperCase();
+const img = (src, cls) => src ? `<img class="${cls}" src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">` : `<span class="${cls}"></span>`;
+const avatar = (name, src) => src ? img(src, "avatar") : `<span class="avatar" aria-hidden="true">${esc(initials(name))}</span>`;
 const clock = s => s ? `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}` : "";
 
 async function loadStatus() {
   st = await api("/api/status");
   const b = $("#brain"), keep = b.value;
-  b.innerHTML = Object.entries(st.brains).map(([k, v]) =>
-    `<option value="${k}" ${v.ok ? "" : "disabled"}>${esc(v.label)}${v.ok ? "" : " — " + esc(v.note)}</option>`).join("");
-  b.value = keep || (st.brains["claude-code"].ok ? "claude-code" : Object.keys(st.brains).find(k => st.brains[k].ok));
+  b.innerHTML = Object.entries(st.brains).filter(([, v]) => v.ok).map(([k, v]) =>
+    `<option value="${k}">${esc(v.label)}</option>`).join("");  // the rest are explained in Setup
+  b.value = keep && st.brains[keep] && st.brains[keep].ok ? keep : Object.keys(st.brains).find(k => st.brains[k].ok);
   $("#model").innerHTML = st.ollama_models.map(m => `<option>${esc(m)}</option>`).join("");
   if (!$("#lang").options.length) {
     $("#lang").innerHTML = Object.entries(st.langs).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
@@ -230,8 +325,15 @@ async function loadStatus() {
     if (!$("#lang").value) $("#lang").value = "en";
     $("#profile").value = st.profile;
   }
-  const w = $("#transcriber").querySelector('[value=whisper]');
-  w.disabled = !st.whisper; w.textContent = st.whisper ? "Local Whisper" : "Local Whisper — not installed";
+  const tsel = $("#transcriber"), tkeep = tsel.value || localGet("transcriber") || "auto";
+  tsel.innerHTML = Object.entries(st.transcribers).filter(([, t]) => t.ok).map(([k, t]) =>
+    `<option value="${k}">${esc(t.label)}</option>`).join("");  // services without a key are explained in the README
+  tsel.value = st.transcribers[tkeep] && st.transcribers[tkeep].ok ? tkeep : "auto";
+  if (!$("#wsize").options.length) {
+    $("#wsize").innerHTML = st.whisper_sizes.map(z => `<option>${z}</option>`).join("");
+    $("#wsize").value = localGet("wsize") || st.whisper_sizes[0];
+  }
+  $("#sizeWrap").hidden = tsel.value !== "whisper";
   const cb = st.brains[b.value] || {};
   $("#chipBrain").innerHTML = `<span class="dot ${cb.ok ? "ok" : "no"}"></span>${esc(cb.label || "brain")}`;
   const L = st.login.state === "running";
@@ -244,8 +346,10 @@ async function loadStatus() {
 function localGet(k) { try { return localStorage.getItem("tavis." + k); } catch { return null; } }
 function localSet(k, v) { try { localStorage.setItem("tavis." + k, v); } catch {} }
 
-$("#brain").onchange = loadStatus;
+$("#brain").onchange = () => { localSet("brain", $("#brain").value); loadStatus(); };
 $("#lang").onchange = e => localSet("lang", e.target.value);
+$("#transcriber").onchange = e => { localSet("transcriber", e.target.value); $("#sizeWrap").hidden = e.target.value !== "whisper"; };
+$("#wsize").onchange = e => localSet("wsize", e.target.value);
 $("#profile").onchange = e => api("/api/profile", {text: e.target.value});
 $("#chipLogin").onclick = async () => {
   if (st && st.logged_in) { await api("/api/logout", {}); }
@@ -267,13 +371,57 @@ function setMode(m) {
   const p = PRESETS[mode];
   $("#at").hidden = !p.at; $(".field").classList.toggle("with-at", p.at);
   $("#src").placeholder = p.ph; $("#srcHint").textContent = p.hint; $("#srcBtn").textContent = p.btn;
-  $("#videos").innerHTML = "";  // the username stays: switching platform keeps what you typed
+  // the username stays: switching platform keeps what you typed
   localSet("mode", mode);
 }
 document.querySelectorAll("[role=tab]").forEach(t => t.onclick = () => { setMode(t.dataset.mode); $("#src").focus(); });
 setMode(localGet("mode") || "tiktok");
 $("#src").value = localGet("who") || "";
 
+// ---- browsing: the creator's videos as a grid on the right, with a player to watch before learning ----
+function embedUrl(url) {
+  // TikTok refuses to stream its videos inside other pages, so TikTok gets a cover and a link, not a player
+  const yt = /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/.exec(url || "");
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0&modestbranding=1`;
+  return "";
+}
+function playerHtml(v) {
+  const src = embedUrl(v.url), tall = !isWide(v.url);
+  const frame = src
+    ? `<iframe class="frame ${tall ? "tall" : ""}" src="${esc(src)}" title="${esc(v.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`
+    : `<a class="cover ${tall ? "tall" : ""}" href="${esc(v.url)}" target="_blank" rel="noopener" title="Opens in your browser">
+        ${img(v.thumbnail, "")}<span class="play">▶ Watch on ${/tiktok/.test(v.url) ? "TikTok" : "the site"} ↗</span></a>
+       <p class="hint" style="margin:0">It plays in your browser, not inside TAVIS: ${/tiktok/.test(v.url) ? "TikTok" : "this site"} does not allow it.</p>`;
+  return `${frame}
+    <div class="who" style="margin-top:12px">${avatar(v.creator, v.avatar)}<span>${esc(v.creator || "")}${v.duration ? " · " + clock(v.duration) : ""}</span></div>
+    <h3 class="ptitle">${esc(v.title || v.url)}</h3>
+    <button class="go big" type="button" id="learnHere">Skill-ize</button>
+    <a class="eyebrow" href="${esc(v.url)}" target="_blank" rel="noopener">open on the site ↗</a>`;
+}
+function showPlayer(v) {
+  choose(v.url, v.title);
+  const p = $("#player"); if (!p) return;
+  p.innerHTML = playerHtml(v);
+  $("#learnHere").onclick = startLearning;
+  document.querySelectorAll(".vcard").forEach(c => c.classList.toggle("on", c.dataset.url === v.url));
+}
+function renderBrowse(videos, who) {
+  const c = videos[0] || {};
+  $("#main").innerHTML = `<div class="browse">
+    <section><div class="who" style="margin-bottom:14px">${avatar(c.creator || who, c.avatar)}
+      <span><b style="color:var(--paper)">${esc(c.creator || who)}</b> · ${videos.length} video${videos.length === 1 ? "" : "s"} · pick one to watch it</span></div>
+      <div class="vgrid" id="vgrid"></div></section>
+    <aside class="player" id="player"><p class="hint">Pick a video to watch it here.</p></aside></div>`;
+  const g = $("#vgrid");
+  videos.forEach(v => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "vcard"; b.dataset.url = v.url;
+    b.innerHTML = `<span class="vimg ${isWide(v.url) ? "wide" : ""}">${img(v.thumbnail, "")}<span class="dur">${clock(v.duration)}</span></span>
+      <span class="vtitle">${esc(v.title)}</span>`;
+    b.onclick = () => showPlayer(v);
+    g.appendChild(b);
+  });
+  if (videos.length === 1) showPlayer(videos[0]);
+}
 function choose(url, label) {
   chosen = url; $("#learnBtn").disabled = !url;
   if (label) $("#srcHint").textContent = "Selected: " + label;
@@ -285,41 +433,55 @@ $("#srcForm").onsubmit = async e => {
   e.preventDefault();
   const q = $("#src").value.trim(); if (!q) return;
   if (!isLink(q)) localSet("who", q);
-  if (mode === "link" || isLink(q)) { if (!isLink(q)) { $("#srcHint").textContent = "That is not a link. Paste one that starts with https://"; return; }
-    choose(q); return $("#learnBtn").click(); }
-  const box = $("#videos"); box.innerHTML = '<p class="hint">Looking…</p>'; $("#srcBtn").disabled = true;
+  if (mode === "link" || isLink(q)) {
+    if (!isLink(q)) { $("#srcHint").textContent = "That is not a link. Paste one that starts with https://"; return; }
+    renderBrowse([{url: q, title: q, creator: ""}], ""); return;
+  }
+  $("#main").innerHTML = `<div class="working"><div><p class="label">Looking for videos</p><div class="bar"><i></i></div></div></div>`;
+  $("#srcBtn").disabled = true;
   try {
     const j = await waitJob((await api("/api/list", {query: q.replace(/^@/, ""), platform: mode})).job);
-    box.innerHTML = j.videos.length ? "" : '<p class="hint">No videos found.</p>';
-    j.videos.forEach(v => {
-      const b = document.createElement("button"); b.type = "button";
-      b.innerHTML = `<span>${esc(v.title)}</span><span class="d">${clock(v.duration)}</span>`;
-      b.onclick = () => { box.querySelectorAll("button").forEach(x => x.classList.remove("on")); b.classList.add("on"); choose(v.url, v.title); };
-      box.appendChild(b);
-    });
-  } catch (err) { box.innerHTML = `<div class="err">${esc(err.message)}</div>`; }
+    if (!j.videos.length) { $("#main").innerHTML = `<div class="err">No videos found for “${esc(q)}”.</div>`; return; }
+    renderBrowse(j.videos, q);
+  } catch (err) { $("#main").innerHTML = `<p class="label">Something stopped</p><div class="err">${esc(err.message)}</div>`; }
   finally { $("#srcBtn").disabled = false; }
 };
 
-$("#learnBtn").onclick = async () => {
+async function startLearning() {
   if (!chosen) return;
-  const btn = $("#learnBtn"); btn.disabled = true; btn.textContent = "Learning…";
+  window.scrollTo({top: 0, behavior: "smooth"});
+  const btn = $("#learnBtn"); btn.disabled = true; btn.textContent = "Skill-izing…";
   const main = $("#main");
-  main.innerHTML = `<p class="label">Working</p><div class="progress" id="prog"></div>`;
+  main.innerHTML = `<div class="working">
+    <pre class="think" aria-hidden="true">    .-"""-.-"""-.
+   /  .-.   .-.  \\
+  |  ( <span class="eye">o</span> )_( <span class="eye">o</span> )  |
+  |   '-'   '-'   |
+   \\  '._____.'  /
+    '-.._____..-'</pre>
+    <div><p class="label">Working</p><div id="pv"></div><div class="bar"><i></i></div>
+    <div class="progress" id="prog" aria-live="polite"></div></div></div>`;
   const started = Date.now();
-  const tick = log => { $("#prog").innerHTML = log.map((l, i) =>
-    `<div class="${i === log.length - 1 ? "now" : ""}">${esc(l)}</div>`).join("") +
-    `<div style="color:var(--dim)">${Math.round((Date.now() - started) / 1000)} s</div>`; };
+  let shown = false;
+  const tick = (log, job) => {
+    if (job && job.preview && !shown) { shown = true; const m = job.preview;
+      $("#pv").innerHTML = `<div class="preview">${img(m.thumbnail, "thumb" + (isWide(m.url) ? " wide" : ""))}
+        <div><div class="who">${avatar(m.creator)}<span>${esc(m.creator)} · ${esc(m.platform)} · ${clock(m.duration)}</span></div>
+        <h3>${esc(m.title)}</h3></div></div>`; }
+    $("#prog").innerHTML = log.map((l, i) =>
+      `<div class="${i === log.length - 1 ? "now" : ""}">${esc(l)}</div>`).join("") +
+      `<div style="color:var(--dim)">${Math.round((Date.now() - started) / 1000)} s</div>`; };
   try {
     const job = await api("/api/learn", {url: chosen, brain: $("#brain").value, lang: $("#lang").value,
-      transcriber: $("#transcriber").value, model: $("#brain").value === "ollama" ? $("#model").value : null});
+      transcriber: $("#transcriber").value, whisper_size: $("#transcriber").value === "whisper" ? $("#wsize").value : null, model: $("#brain").value === "ollama" ? $("#model").value : null});
     const j = await waitJob(job.job, tick);
     current = {key: j.key, meta: j.meta, card: j.card, status: "pending"};
     renderCard(); loadHistory();
   } catch (err) {
     main.innerHTML = `<p class="label">Something stopped</p><div class="err">${esc(err.message)}</div>`;
-  } finally { btn.disabled = false; btn.textContent = "Learn from this video"; }
-};
+  } finally { btn.disabled = false; btn.textContent = "Skill-ize"; }
+}
+$("#learnBtn").onclick = startLearning;
 
 function stamp(at, url) {
   if (!at) return `<span class="t"></span>`;
@@ -327,23 +489,27 @@ function stamp(at, url) {
   const yt = /youtube\.com|youtu\.be/.test(url || "");
   return yt ? `<a class="t" href="${esc(url)}&t=${s}s" target="_blank" rel="noopener">${esc(at)}</a>` : `<span class="t">${esc(at)}</span>`;
 }
-const list = xs => xs && xs.length ? `<ul>${xs.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="none">Nothing here.</p>`;
+// "(added)" / "(aggiunto)" marks what the brain added beyond the video: show it as a label, not as text
+const mark = x => esc(x).replace(/\s*\((added|aggiunto|añadido|ajouté|hinzugefügt|adicionado)([^)]*)\)/gi,
+  (_, w, rest) => ` <span class="added" title="Not said in the video: added by the brain${esc(rest)}">not in video</span>`);
+const list = xs => xs && xs.length ? `<ul>${xs.map(x => `<li>${mark(x)}</li>`).join("")}</ul>` : `<p class="none">Nothing here.</p>`;
 
 function renderCard() {
   const {meta: m, card: c} = current, sk = c.skill;
   const warns = c.warnings.length ? c.warnings.map(w =>
-    `<div class="warn"><span class="k ${esc(w.kind)}">${esc(w.kind.replaceAll("_", " "))}</span><span>${esc(w.text)}</span></div>`).join("")
+    `<div class="warn"><span class="k ${esc(w.kind)}">${esc(w.kind.replaceAll("_", " "))}</span><span>${mark(w.text)}</span></div>`).join("")
     : `<p class="none">No warnings found. That is the brain's reading, not a guarantee.</p>`;
   $("#main").innerHTML = `<article class="card">
-    <div class="eyebrow">${esc(m.creator)} · ${esc(m.platform)} · ${esc(m.upload_date || "date unknown")} · ${clock(m.duration)}</div>
+    <div class="cardhead">${img(m.thumbnail, "thumb" + (isWide(m.url) ? " wide" : ""))}<div>
+    <div class="who">${avatar(m.creator)}<span>${esc(m.creator)} · ${esc(m.platform)} · ${esc(m.upload_date || "date unknown")} · ${clock(m.duration)}</span></div>
     <h2>${esc(m.title)}</h2>
     <a class="eyebrow" href="${esc(m.url)}" target="_blank" rel="noopener">${esc(m.url)}</a>
-    <div class="meta-note">${esc(c.brain)} · ${esc(c.transcript_source)}</div>
+    <div class="meta-note">${esc(c.brain)} · ${esc(c.transcript_source)}</div></div></div>
     <div class="verdict"><span class="pill ${c.worth_a_skill ? "yes" : "no"}">${c.worth_a_skill ? "worth a skill" : "not worth it"}</span><span>${esc(c.verdict)}</span></div>
 
     <section class="sec"><h3>What it teaches</h3><p>${esc(c.teaches)}</p></section>
     <section class="sec"><h3>What was learned</h3>
-      <ul class="learned">${c.learned.map(p => `<li>${stamp(p.at, m.url)}<span>${esc(p.point)}</span></li>`).join("") || '<li class="none">Nothing concrete.</li>'}</ul></section>
+      <ul class="learned">${c.learned.map(p => `<li>${stamp(p.at, m.url)}<span>${mark(p.point)}</span></li>`).join("") || '<li class="none">Nothing concrete.</li>'}</ul></section>
     <section class="sec"><h3>What it is good for</h3>${list(c.uses)}</section>
     <section class="sec two">
       <div><h3>For your work</h3>${list(c.for_your_work)}</div>
@@ -355,12 +521,12 @@ function renderCard() {
 
     <section class="sec"><h3>The skill</h3><div class="skill">
       <label>Name<input type="text" id="skName" value="${esc(sk.name)}"></label>
-      <label>Description — decides when Claude uses it<input type="text" id="skDesc" value="${esc(sk.description)}"></label>
+      <label>Description: decides when Claude uses it<input type="text" id="skDesc" value="${esc(sk.description)}"></label>
       <label>Body<textarea id="skBody">${esc(sk.body)}</textarea></label>
       <div class="path" id="skPath"></div>
     </div></section>
     <div class="actions" id="actions">
-      <button class="go" id="approve" type="button">Approve and install skill</button>
+      <button class="go" id="approve" type="button">Learn this skill</button>
       <button class="ghost" id="reject" type="button">Reject</button>
       <span class="hint" id="status">${current.status === "approved" ? "Already approved once." : current.status === "rejected" ? "Rejected earlier." : ""}</span>
     </div>
@@ -373,8 +539,10 @@ function renderCard() {
     try {
       const r = await api("/api/approve", {key: current.key, skill: edited(), overwrite});
       $("#actions").innerHTML = `<div class="ok-box">Installed: <span class="path">${esc(r.path)}</span><br>
-        Claude Code picks it up in new sessions. Test it by asking for something its description covers.</div>`;
-      loadHistory();
+        Claude Code picks it up in new sessions. Test it by asking for something its description covers.
+        <br><button class="ghost mini" id="editNow" type="button" style="margin-top:10px">Edit this skill</button></div>`;
+      $("#editNow").onclick = () => openSkill(edited().name);
+      loadHistory(); loadSkills();
     } catch (e) {
       if (e.status === 409) {
         $("#status").innerHTML = `${esc(e.message)} <button class="ghost" id="ow" type="button">Replace it</button>`;
@@ -386,6 +554,59 @@ function renderCard() {
   $("#reject").onclick = async () => { await api("/api/reject", {key: current.key}); $("#status").textContent = "Rejected. Nothing was written."; loadHistory(); };
 }
 
+// ---- installed skills: edit by hand, or ask the current brain to change them ----
+async function loadSkills() {
+  const {items} = await api("/api/skills");
+  const box = $("#skills");
+  box.innerHTML = items.length ? "" : '<p class="hint">Approved skills show up here, ready to edit.</p>';
+  items.forEach(s => {
+    const b = document.createElement("button"); b.type = "button";
+    b.innerHTML = `<span class="s approved">skill</span><span>${esc(s.name)}</span>`;
+    b.title = s.description;
+    b.onclick = () => openSkill(s.name);
+    box.appendChild(b);
+  });
+}
+const QUICK = ["Make it shorter and sharper", "Make the steps more concrete", "Add an example for my work",
+               "Translate the body into English", "Remove anything that promotes a product"];
+async function openSkill(name) {
+  const r = await api("/api/skill?name=" + encodeURIComponent(name));
+  const label = (st.brains[$("#brain").value] || {}).label || "the AI";
+  $("#main").innerHTML = `<article class="editor">
+    <div><p class="label">Skill</p><h2 class="ename">${esc(r.name)}</h2><div class="path">${esc(r.path)}</div></div>
+    <div class="ecols">
+      <section><textarea id="edText" spellcheck="false" aria-label="SKILL.md">${esc(r.text)}</textarea>
+        <div class="actions"><button class="go" id="edSave" type="button">Save</button>
+        <button class="ghost" id="edRevert" type="button">Undo changes</button><span class="hint" id="edMsg"></span></div></section>
+      <aside class="aipanel"><p class="label">Change it with ${esc(label)}</p>
+        <textarea id="edAsk" rows="4" placeholder="e.g. add a step about checking the price before calling the client"></textarea>
+        <div class="chips">${QUICK.map(q => `<button class="ghost mini" type="button">${esc(q)}</button>`).join("")}</div>
+        <button class="go" id="edGo" type="button" style="padding:12px 16px">Ask for this change</button>
+        <div id="edOut"></div>
+        <p class="hint">Nothing is saved until you press Save. The brain is the one picked on the left.</p></aside>
+    </div></article>`;
+  const original = r.text;
+  $("#edRevert").onclick = () => { $("#edText").value = original; $("#edMsg").textContent = "Back to the saved version."; };
+  $("#edSave").onclick = async () => {
+    try { await api("/api/skill/save", {name: r.name, text: $("#edText").value}); $("#edMsg").textContent = "Saved. Claude Code uses it from the next session."; }
+    catch (e) { $("#edMsg").textContent = e.message; }
+  };
+  document.querySelectorAll(".aipanel .chips button").forEach(c => c.onclick = () => { $("#edAsk").value = c.textContent; $("#edAsk").focus(); });
+  $("#edGo").onclick = async () => {
+    const go = $("#edGo"), out = $("#edOut"); go.disabled = true;
+    out.innerHTML = `<div class="bar"><i></i></div><p class="hint">Rewriting…</p>`;
+    try {
+      const j = await waitJob((await api("/api/skill/ai", {text: $("#edText").value, instruction: $("#edAsk").value,
+        brain: $("#brain").value, model: $("#brain").value === "ollama" ? $("#model").value : null})).job);
+      out.innerHTML = `<p class="label" style="margin-top:14px">Proposed version</p><pre class="proposal">${esc(j.text)}</pre>
+        <div class="actions"><button class="go" id="edUse" type="button">Use this version</button>
+        <button class="ghost" id="edDrop" type="button">Discard</button></div>`;
+      $("#edUse").onclick = () => { $("#edText").value = j.text; out.innerHTML = `<p class="hint">Applied in the editor. Press Save to keep it.</p>`; };
+      $("#edDrop").onclick = () => { out.innerHTML = ""; };
+    } catch (e) { out.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+    finally { go.disabled = false; }
+  };
+}
 async function loadHistory() {
   const {items} = await api("/api/history");
   $("#hist").innerHTML = items.length ? "" : '<p class="hint">Nothing yet.</p>';
@@ -397,7 +618,97 @@ async function loadHistory() {
     $("#hist").appendChild(b);
   });
 }
-loadStatus(); loadHistory();
+// ---- first-run setup: four short steps, every one can be skipped ----
+let wStep = 0, wBrain = null;
+const GROUPS = {"claude-code": "plan", codex: "plan", gemini: "plan", ollama: "local", lmstudio: "local", none: "none"};
+const HOWTO = {
+  "claude-code": `Install <a href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a>, run <code>claude</code> once to sign in.`,
+  codex: `Install <a href="https://github.com/openai/codex" target="_blank" rel="noopener">Codex</a>, run <code>codex</code> once to sign in.`,
+  gemini: `Install <a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener">Gemini CLI</a>, run <code>gemini</code> once to sign in.`,
+  lmstudio: `Open <a href="https://lmstudio.ai" target="_blank" rel="noopener">LM Studio</a>, load a model and start its local server.`,
+  custom: `Set <code>TAVIS_CUSTOM_BASE_URL</code> (and <code>TAVIS_CUSTOM_API_KEY</code> if it needs one).`,
+};
+function ollamaNote() {
+  const inst = st.installed, models = st.ollama_models;
+  if (models.length) return `<span class="ok">Ready: will use ${esc(models[0])}.</span>`;
+  if (!inst.ollama) return `Optional. <a href="https://ollama.com/download" target="_blank" rel="noopener">Get Ollama</a>, then press Check again.`;
+  if (!inst.ollama_running) return `Installed but not running. Open the Ollama app, then press Check again.`;
+  return `Running with no chat model. <button class="ghost mini" id="pullBtn" type="button">Download ${esc(st.starter_model)} (about 5 GB)</button> <span id="pullLog"></span>`;
+}
+function brainRow(k) {
+  const b = st.brains[k], kind = GROUPS[k] || "api";
+  const what = {plan: "uses your subscription, no key", api: "API key, pay per use", local: "on this computer, free, offline", none: "always works"}[kind];
+  let note = k === "ollama" ? ollamaNote()
+    : b.ok ? `<span class="ok">Ready.</span>`
+    : HOWTO[k] || `Set <code>${esc(b.note.replace(/^set /, ""))}</code> in your terminal before starting <code>tavis</code>. TAVIS never saves keys.`;
+  if (k === "none") note = "Pulls the steps out of the transcript and says plainly that nothing was understood.";
+  return `<label class="opt ${b.ok ? "" : "off"}"><input type="radio" name="wb" value="${k}" ${b.ok ? "" : "disabled"} ${wBrain === k ? "checked" : ""}>
+    <b>${esc(b.label)} <span class="no" style="font-weight:400">· ${what}</span></b><span class="st">${note}</span></label>`;
+}
+function wRender() {
+  document.querySelectorAll("#wSteps i").forEach((el, i) => el.classList.toggle("on", i <= wStep));
+  $("#wBack").style.visibility = wStep ? "visible" : "hidden";
+  $("#wNext").textContent = wStep === 3 ? "Start using TAVIS" : "Next";
+  const body = $("#wBody");
+  if (wStep === 0) {
+    const keys = Object.keys(st.brains);
+    if (!wBrain || !st.brains[wBrain].ok) wBrain = keys.find(k => st.brains[k].ok);
+    const ready = keys.filter(k => st.brains[k].ok || k === "ollama" && st.installed.ollama_running);
+    const more = keys.filter(k => !ready.includes(k));
+    body.innerHTML = `<h2 id="wTitle">Who reads the videos?</h2>
+      <p class="lead">Any one of these is enough. You do not need a local model: a plan you already pay for (Claude, ChatGPT, Google) or an API key works, and with nothing at all TAVIS still runs without AI. You can change it any time.</p>
+      ${ready.map(brainRow).join("")}
+      <details style="margin:10px 0"><summary>More options (${more.length}): other plans, API keys, local models</summary><div style="margin-top:8px">${more.map(brainRow).join("")}</div></details>
+      <button class="ghost mini" id="recheck" type="button">Check again</button>`;
+    body.querySelectorAll("input[name=wb]").forEach(r => r.onchange = () => { wBrain = r.value; });
+    $("#recheck").onclick = async () => { await loadStatus(); wRender(); };
+    const pb = $("#pullBtn");
+    if (pb) pb.onclick = async () => {
+      pb.disabled = true;
+      try { await waitJob((await api("/api/pull", {model: st.starter_model})).job, log => { $("#pullLog").textContent = log[log.length - 1] || "starting…"; });
+        await loadStatus(); wBrain = "ollama"; wRender();
+      } catch (e) { $("#pullLog").textContent = e.message; pb.disabled = false; }
+    };
+  } else if (wStep === 1) {
+    body.innerHTML = `<h2 id="wTitle">Tell TAVIS who you are</h2>
+      <p class="lead">One or two lines make the advice about your work instead of anyone's. Stored only on this computer.</p>
+      <label>About you<textarea id="wProfile" placeholder="e.g. I run a small web agency in Italy. Clients are restaurants and shops.">${esc($("#profile").value)}</textarea></label>
+      <label>Language of the cards<select id="wLang">${$("#lang").innerHTML}</select></label>`;
+    $("#wLang").value = $("#lang").value;
+  } else if (wStep === 2) {
+    body.innerHTML = `<h2 id="wTitle">TikTok, if you want it</h2>
+      <p class="lead">TikTok only opens videos to signed-in people. A window will show TikTok's QR code: scan it with the TikTok app and you are done. TAVIS never sees a password. YouTube and links work without this.</p>
+      <p>${st.logged_in ? `<span class="ok">Signed in to TikTok.</span>` : `<button class="go" id="wLogin" type="button" style="padding:12px 18px">Show the QR code</button> <span class="hint" id="wLoginMsg"></span>`}</p>`;
+    const L = $("#wLogin");
+    if (L) L.onclick = async () => { await api("/api/login", {}); $("#wLoginMsg").textContent = "Scan the code in the window that opened…";
+      const t = setInterval(async () => { await loadStatus(); if (st.logged_in || st.login.state === "error") { clearInterval(t); wRender(); } }, 2000); };
+  } else {
+    const name = st.brains[wBrain] ? st.brains[wBrain].label : "No AI";
+    body.innerHTML = `<h2 id="wTitle">Ready</h2>
+      <p class="lead">Brain: <b>${esc(name)}</b>. TikTok: ${st.logged_in ? "signed in" : "not signed in (optional)"}.<br>
+      Pick TikTok or YouTube, type a username, choose a video, and read the card before anything reaches Claude.</p>`;
+  }
+}
+async function wNext() {
+  if (wStep === 1) {
+    $("#profile").value = $("#wProfile").value; await api("/api/profile", {text: $("#wProfile").value});
+    $("#lang").value = $("#wLang").value; localSet("lang", $("#wLang").value);
+  }
+  if (wStep === 3) {
+    await api("/api/setup", {brain: wBrain}); localSet("brain", wBrain);
+    $("#brain").value = wBrain; $("#wiz").hidden = true; loadStatus(); return;
+  }
+  wStep++; wRender();
+}
+$("#wNext").onclick = wNext;
+$("#wBack").onclick = () => { if (wStep) { wStep--; wRender(); } };
+$("#chipSetup").onclick = () => { wStep = 0; $("#wiz").hidden = false; wRender(); };
+loadStatus().then(() => {
+  const saved = localGet("brain");
+  if (saved && st.brains[saved] && st.brains[saved].ok) { $("#brain").value = saved; loadStatus(); }
+  if (!st.setup_done) { $("#wiz").hidden = false; wRender(); }
+});
+loadHistory(); loadSkills();
 setInterval(() => { if (!document.hidden) loadStatus().catch(() => {}); }, 15000);
 </script>
 </body>

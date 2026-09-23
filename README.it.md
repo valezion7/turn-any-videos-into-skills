@@ -1,4 +1,4 @@
-# TAVIS — Turn Any VIdeo into Skills
+# TAVIS: Turn Any VIdeo into Skills
 
 Gli dai un video che insegna qualcosa. Ne esce una scheda da leggere e, se la approvi, una skill che Claude sa usare.
 
@@ -9,11 +9,11 @@ Gli dai un video che insegna qualcosa. Ne esce una scheda da leggere e, se la ap
   |   '-'   '-'   |       ██    ██   ██  ██  ██  ██      ██
    \  '._____.'  /        ██    ██   ██   ████   ██ ███████
     '-.._____..-'
-                     turn any video into a skill   ·   v0.1.0
+                     turn any video into a skill   ·   v0.2.0
 ```
 
 [![Licenza: MIT](https://img.shields.io/badge/license-MIT-FF6A00.svg)](LICENSE)
-![Versione](https://img.shields.io/badge/version-0.1.0-0B0A09.svg)
+![Versione](https://img.shields.io/badge/version-0.2.0-0B0A09.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-0B0A09.svg)
 
 *[Read in English](README.md)*
@@ -26,7 +26,7 @@ Gli dai un video che insegna qualcosa. Ne esce una scheda da leggere e, se la ap
 
 ## Installazione
 
-Serve **Git Bash** su Windows (o una bash qualsiasi su macOS e Linux) e **Python 3.9+**.
+Serve **Git Bash** su Windows, o una bash qualsiasi su macOS e Linux. Nient'altro: se manca Python, l'installatore si offre di installarlo lui (winget su Windows, Homebrew su macOS, apt su Linux).
 
 ```bash
 git clone https://github.com/valezion7/turn-any-videos-into-skills.git
@@ -34,7 +34,7 @@ cd turn-any-videos-into-skills
 bash install.sh --all
 ```
 
-`--all` aggiunge la finestra di accesso a TikTok e Whisper locale. Per il solo nucleo basta `bash install.sh`. Tutto finisce in una `.venv` dentro la cartella, e il comando `tavis` va in `~/bin`.
+`--all` aggiunge la finestra di accesso a TikTok e Whisper locale. Per il solo nucleo basta `bash install.sh`. Tutto finisce in una `.venv` dentro la cartella, compreso il piccolo motore JavaScript che serve a YouTube (quindi Node non serve). Il comando `tavis` va in `~/bin`.
 
 ## In 30 secondi
 
@@ -42,13 +42,21 @@ bash install.sh --all
 tavis
 ```
 
-Si apre il browser su `http://127.0.0.1:4747`. Scegli **TikTok** o **YouTube** e scrivi solo il nome utente, che resta anche se cambi social; oppure scegli **Link** e incolla il link di un video qualsiasi. Premi **Learn**, leggi la scheda e premi **Approve**. La skill finisce in `~/.claude/skills/`, e Claude Code la usa dalla sessione successiva.
+Si apre il browser su `http://127.0.0.1:4747`. La prima volta una **configurazione in quattro passi** chiede tre cose: chi deve leggere i video (e mostra cosa ha trovato sul tuo computer), chi sei, e se vuoi TikTok. Ogni passo si può saltare.
+
+Poi scegli **TikTok** o **YouTube** e scrivi solo il nome utente, che resta anche se cambi social. Oppure scegli **Link** e incolla il link di un video qualsiasi. I video del creator compaiono in una griglia, con quello selezionato a destra. Premi **Skill-ize**, leggi la scheda e poi **Learn this skill**. La skill finisce in `~/.claude/skills/`, e Claude Code la usa dalla sessione successiva.
+
+> I video di YouTube si guardano dentro TAVIS. TikTok invece non permette di riprodurre i suoi video dentro altre pagine: la copertina di un TikTok apre il video nel browser.
 
 Da terminale:
 
 ```bash
 tavis learn "https://www.youtube.com/watch?v=bjdBVZa66oU" --lang it
 ```
+
+### Modificare una skill dopo
+
+Le skill scritte da TAVIS sono elencate in **Your skills**. Aprendone una puoi modificare il `SKILL.md` a mano, oppure chiedere al cervello che stai usando di cambiarla: "accorciala", "aggiungi un esempio per il mio lavoro", "togli tutto ciò che promuove un prodotto". Vedi prima la versione proposta, poi scegli se usarla e salvare. TAVIS rifiuta di salvare un file che Claude Code non riuscirebbe più a caricare.
 
 ## Come funziona
 
@@ -75,22 +83,43 @@ Gli avvertimenti sono la ragione per cui l'approvazione è manuale. Molti video 
 
 ## Configurazione
 
-### Quattro cervelli: tre non chiedono nessuna chiave
+### I cervelli: ne basta uno, e il modello locale non serve
+
+TAVIS trova da solo quello che hai già. La configurazione e `tavis doctor` mostrano ogni opzione come pronta o no, e spiegano come attivarla.
 
 | cervello | costo | cosa serve | note |
 |---|---|---|---|
-| `claude-code` **(predefinito)** | incluso nel tuo abbonamento Claude | [Claude Code](https://claude.com/claude-code) installato e con l'accesso fatto | gira `claude -p` con **tutti gli strumenti spenti**, senza i tuoi hook e impostazioni |
-| `anthropic` | a consumo | `ANTHROPIC_API_KEY` nell'ambiente | modello: `TAVIS_ANTHROPIC_MODEL` (predefinito `claude-sonnet-5`) |
-| `ollama` | gratis, offline | [Ollama](https://ollama.com) con un modello chat | **rilevato da solo**: TAVIS sceglie il miglior modello chat che hai installato. I modelli per il codice, di embedding e "uncensored" vanno in fondo; tra gli altri vince il più grande fino a `TAVIS_OLLAMA_MAX_B`=40B. Un secondo passaggio completa i consigli e gli avvertimenti che i modelli locali tendono a saltare. Per scegliere tu: `TAVIS_OLLAMA_MODEL`. Per tenerlo fuori dalla GPU: `TAVIS_OLLAMA_NUM_GPU=0` |
+| `claude-code` **(predefinito)** | il tuo abbonamento Claude | [Claude Code](https://claude.com/claude-code) con l'accesso fatto | `claude -p` con **tutti gli strumenti spenti**, senza i tuoi hook e impostazioni, in una cartella vuota |
+| `codex` | il tuo abbonamento ChatGPT | [Codex CLI](https://github.com/openai/codex) con l'accesso fatto | `codex exec` in **sandbox di sola lettura**, niente salvato |
+| `gemini` | il tuo account Google | [Gemini CLI](https://github.com/google-gemini/gemini-cli) con l'accesso fatto | `gemini -p` in modalità plan (sola lettura), senza estensioni |
+| `anthropic` | a consumo | `ANTHROPIC_API_KEY` | modello `TAVIS_ANTHROPIC_MODEL` (predefinito `claude-sonnet-5`) |
+| `openai` | a consumo | `OPENAI_API_KEY` | |
+| `deepseek` | a consumo | `DEEPSEEK_API_KEY` | |
+| `openrouter` | a consumo | `OPENROUTER_API_KEY` | centinaia di modelli con una sola chiave |
+| `gemini-api` | a consumo / gratis con limiti | `GEMINI_API_KEY` | |
+| `groq` · `mistral` · `xai` | a consumo | `GROQ_API_KEY` · `MISTRAL_API_KEY` · `XAI_API_KEY` | |
+| `custom` | tuo | `TAVIS_CUSTOM_BASE_URL` (+ `TAVIS_CUSTOM_API_KEY`) | qualsiasi server che parla il formato chat di OpenAI (vLLM, LiteLLM, un gateway aziendale…) |
+| `ollama` | gratis, offline | [Ollama](https://ollama.com) | **rilevato da solo**: TAVIS sceglie il miglior modello chat che hai installato. I modelli per il codice, di embedding e "uncensored" vanno in fondo; tra gli altri vince il più grande fino a `TAVIS_OLLAMA_MAX_B`=40B. Nessun modello? Lo scarica la configurazione. Un secondo passaggio completa i consigli e gli avvertimenti che i modelli locali tendono a saltare |
+| `lmstudio` | gratis, offline | [LM Studio](https://lmstudio.ai) con il server locale acceso | stesso secondo passaggio di Ollama |
 | `none` | gratis | niente | estrae le frasi che sembrano passi e **dichiara** che nessun modello ha letto il video |
 
-### Tre modi di trascrivere
+Per ogni cervello via API il modello si sceglie con `TAVIS_<NOME>_MODEL` (per esempio `TAVIS_DEEPSEEK_MODEL`). Senza, TAVIS chiede al fornitore quali modelli esistono e ne sceglie uno da chat, così un modello rinominato non rompe niente. Le chiavi si leggono dall'ambiente e non vengono mai salvate.
 
-| modo | quando |
-|---|---|
-| `auto` (predefinito) | i sottotitoli se ci sono, altrimenti Whisper |
-| `subtitles` | i sottotitoli del creator, oppure quelli automatici nella lingua parlata |
-| `whisper` | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) in locale, modello `TAVIS_WHISPER_MODEL` (predefinito `turbo`). Usa CUDA se può, altrimenti la CPU (`TAVIS_WHISPER_DEVICE=cpu` per forzarla) |
+### Trascrizione: prima i sottotitoli, poi il motore che scegli tu
+
+Quasi tutti i video hanno i sottotitoli, e quelli non costano niente. Quando un video non li ha (quasi tutti i TikTok), TAVIS scarica solo l'audio e lo passa al motore che scegli in **Transcript**:
+
+| modo | costo | cosa serve | note |
+|---|---|---|---|
+| `auto` (predefinito) | | | i sottotitoli, altrimenti Whisper sul tuo computer, altrimenti il primo servizio con una chiave |
+| `subtitles` | gratis | niente | i sottotitoli del creator, oppure quelli automatici nella lingua parlata |
+| `whisper` | gratis, offline | `bash install.sh --with-whisper` | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) sul tuo computer. La dimensione del modello si sceglie nell'interfaccia (`turbo` di base, fino a `tiny` per i computer lenti). Usa la GPU se può, altrimenti la CPU |
+| `elevenlabs` | a consumo | `ELEVENLABS_API_KEY` | ElevenLabs Scribe (`scribe_v2`, si cambia con `TAVIS_STT_ELEVENLABS_MODEL`) |
+| `openai` | a consumo | `OPENAI_API_KEY` | `whisper-1`, si cambia con `TAVIS_STT_OPENAI_MODEL` |
+| `groq` | economico, velocissimo | `GROQ_API_KEY` | `whisper-large-v3-turbo` |
+| `custom` | tuo | `TAVIS_STT_BASE_URL` (+ `TAVIS_STT_API_KEY`, `TAVIS_STT_MODEL`) | qualsiasi server con un endpoint `/audio/transcriptions` nel formato di OpenAI: faster-whisper-server, speaches, LocalAI, il gateway della tua azienda |
+
+Ai servizi che accettano al massimo 25 MB l'audio arriva prima compresso a qualità voce, se c'è ffmpeg. La lingua dell'audio viene sempre riconosciuta da sola, qualunque sia la lingua in cui vuoi la scheda.
 
 ### Entrare su TikTok
 
@@ -108,7 +137,7 @@ Si apre una finestra del browser con un profilo tutto suo, direttamente sul **QR
 
 ```
 tavis                  apre l'interfaccia (come: tavis ui)
-tavis learn <url> [--brain claude-code|anthropic|ollama|none] [--model M]
+tavis learn <url> [--brain claude-code|codex|gemini|anthropic|openai|deepseek|…|ollama|none] [--model M]
                   [--transcriber auto|subtitles|whisper] [--lang it]
                   [--yes | --no] [--overwrite] [--keep CARTELLA]
 tavis list @creator [--platform tiktok|youtube|search]
@@ -118,7 +147,7 @@ tavis doctor           cosa è installato, quali cervelli sono pronti
 
 ## Domande frequenti
 
-**Serve una chiave API?** No. Se hai Claude Code, TAVIS usa il tuo abbonamento tramite `claude -p`. Ollama e `none` non chiedono niente. La chiave è solo una delle possibilità.
+**Serve una chiave API, o un modello locale?** Nessuno dei due. Basta un abbonamento che hai già: Claude Code, Codex (ChatGPT) o Gemini CLI. Ollama, LM Studio e `none` non chiedono nessun account. Le chiavi sono solo una possibilità.
 
 **Funziona offline?** Con `--brain ollama --transcriber whisper` sì, una volta scaricato l'audio del video.
 

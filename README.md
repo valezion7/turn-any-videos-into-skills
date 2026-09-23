@@ -1,4 +1,4 @@
-# TAVIS — Turn Any VIdeo into Skills
+# TAVIS: Turn Any VIdeo into Skills
 
 Give it a video that teaches something. You get a learning card to read, and a skill Claude can use once you approve it.
 
@@ -9,11 +9,11 @@ Give it a video that teaches something. You get a learning card to read, and a s
   |   '-'   '-'   |       ██    ██   ██  ██  ██  ██      ██
    \  '._____.'  /        ██    ██   ██   ████   ██ ███████
     '-.._____..-'
-                     turn any video into a skill   ·   v0.1.0
+                     turn any video into a skill   ·   v0.2.0
 ```
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-FF6A00.svg)](LICENSE)
-![Version](https://img.shields.io/badge/version-0.1.0-0B0A09.svg)
+![Version](https://img.shields.io/badge/version-0.2.0-0B0A09.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-0B0A09.svg)
 [![Stars](https://img.shields.io/github/stars/valezion7/turn-any-videos-into-skills?style=social)](https://github.com/valezion7/turn-any-videos-into-skills)
 
@@ -27,7 +27,7 @@ Give it a video that teaches something. You get a learning card to read, and a s
 
 ## Install
 
-You need **Git Bash** on Windows, or any bash on macOS or Linux, plus **Python 3.9+**.
+You need **Git Bash** on Windows, or any bash on macOS or Linux. That is all: if Python is missing, the installer offers to install it for you (winget on Windows, Homebrew on macOS, apt on Linux).
 
 ```bash
 git clone https://github.com/valezion7/turn-any-videos-into-skills.git
@@ -35,7 +35,7 @@ cd turn-any-videos-into-skills
 bash install.sh --all
 ```
 
-`--all` adds the TikTok login window and local Whisper. The core alone is `bash install.sh`. Everything goes into a `.venv` inside the folder, and the `tavis` command goes into `~/bin`.
+`--all` adds the TikTok login window and local Whisper. The core alone is `bash install.sh`. Everything goes into a `.venv` inside the folder, including the small JavaScript engine YouTube needs (so you do not need Node), and the `tavis` command goes into `~/bin`.
 
 ## Use it in 30 seconds
 
@@ -43,13 +43,21 @@ bash install.sh --all
 tavis
 ```
 
-Your browser opens on `http://127.0.0.1:4747`. Pick **TikTok** or **YouTube** and type just the username (it stays when you switch platform), or pick **Link** and paste any video link. Press **Learn**, read the card, then **Approve**. The skill is now in `~/.claude/skills/`, and Claude Code uses it in your next session.
+Your browser opens on `http://127.0.0.1:4747`. The first time, a **four-step setup** asks who should read the videos (it shows what it found on your computer), who you are, and whether you want TikTok. Every step can be skipped.
+
+Then pick **TikTok** or **YouTube** and type just the username. It stays when you switch platform. Or pick **Link** and paste any video link. The creator's videos appear as a grid, with the selected one on the right. Press **Skill-ize**, read the card, then **Learn this skill**. The skill is now in `~/.claude/skills/`, and Claude Code uses it in your next session.
+
+> YouTube videos play inside TAVIS. TikTok does not allow its videos to play inside other pages, so a TikTok cover opens the video in your browser instead.
 
 Prefer the terminal?
 
 ```bash
 tavis learn "https://www.youtube.com/watch?v=bjdBVZa66oU" --lang en
 ```
+
+### Editing a skill later
+
+Every skill TAVIS wrote is listed under **Your skills**. Open one and you can edit the `SKILL.md` directly, or ask the brain you are using to change it: "make it shorter", "add an example for my work", "remove anything that promotes a product". You see the proposed version first, then choose whether to use it and save. TAVIS refuses to save a file that Claude Code could no longer load.
 
 ## How it works
 
@@ -93,22 +101,43 @@ The warnings are the reason approval is manual. Many "educational" videos sell s
 
 ## Configuration
 
-### Four brains: pick one, no key needed for three of them
+### Brains: any one is enough, and you do not need a local model
+
+TAVIS finds what you already have. The setup page and `tavis doctor` show each option as ready or not, and say how to turn it on.
 
 | brain | cost | what you need | notes |
 |---|---|---|---|
-| `claude-code` **(default)** | included in your Claude plan | [Claude Code](https://claude.com/claude-code) installed and logged in | runs `claude -p` with **every tool disabled** and without your hooks or settings |
-| `anthropic` | pay per use | `ANTHROPIC_API_KEY` in the environment | model: `TAVIS_ANTHROPIC_MODEL` (default `claude-sonnet-5`) |
-| `ollama` | free, offline | [Ollama](https://ollama.com) with a chat model | **detected automatically**, and TAVIS picks your best installed chat model on its own (coding, embedding and "uncensored" models go last, largest up to `TAVIS_OLLAMA_MAX_B`=40B wins). A second pass fills in the advice and warnings that local models tend to skip. Override with `TAVIS_OLLAMA_MODEL`; `TAVIS_OLLAMA_NUM_GPU=0` keeps it off the GPU |
-| `none` | free | nothing | extracts the sentences that look like steps and **says plainly** that no model read the video |
+| `claude-code` **(default)** | your Claude plan | [Claude Code](https://claude.com/claude-code), signed in | `claude -p` with **every tool disabled**, without your hooks or settings, in an empty folder |
+| `codex` | your ChatGPT plan | [Codex CLI](https://github.com/openai/codex), signed in | `codex exec` in a **read-only sandbox**, nothing saved |
+| `gemini` | your Google account | [Gemini CLI](https://github.com/google-gemini/gemini-cli), signed in | `gemini -p` in plan (read-only) mode, no extensions |
+| `anthropic` | pay per use | `ANTHROPIC_API_KEY` | model `TAVIS_ANTHROPIC_MODEL` (default `claude-sonnet-5`) |
+| `openai` | pay per use | `OPENAI_API_KEY` | |
+| `deepseek` | pay per use | `DEEPSEEK_API_KEY` | |
+| `openrouter` | pay per use | `OPENROUTER_API_KEY` | hundreds of models behind one key |
+| `gemini-api` | pay per use / free tier | `GEMINI_API_KEY` | |
+| `groq` · `mistral` · `xai` | pay per use | `GROQ_API_KEY` · `MISTRAL_API_KEY` · `XAI_API_KEY` | |
+| `custom` | yours | `TAVIS_CUSTOM_BASE_URL` (+ `TAVIS_CUSTOM_API_KEY`) | any server that speaks the OpenAI chat format (vLLM, LiteLLM, a company gateway…) |
+| `ollama` | free, offline | [Ollama](https://ollama.com) | **detected automatically**; TAVIS picks your best installed chat model (coding, embedding and "uncensored" models last, largest up to `TAVIS_OLLAMA_MAX_B`=40B). No model yet? The setup page downloads a starter one. A second pass fills in the advice and warnings local models tend to skip |
+| `lmstudio` | free, offline | [LM Studio](https://lmstudio.ai) with its local server on | same second pass as Ollama |
+| `none` | free | nothing | pulls out the sentences that look like steps and **says plainly** that no model read the video |
 
-### Three transcript options
+For every API brain the model is `TAVIS_<NAME>_MODEL` (for example `TAVIS_DEEPSEEK_MODEL`). Without it, TAVIS asks the provider which models exist and picks a chat model, so a renamed model does not break anything. Keys are read from the environment and never saved.
 
-| option | when |
-|---|---|
-| `auto` (default) | subtitles when they exist, Whisper when they don't |
-| `subtitles` | creator subtitles, or the platform's automatic captions in the spoken language |
-| `whisper` | local [faster-whisper](https://github.com/SYSTRAN/faster-whisper), model `TAVIS_WHISPER_MODEL` (default `turbo`). Uses CUDA when it can, otherwise the CPU (`TAVIS_WHISPER_DEVICE=cpu` forces it). On Windows the GPU also needs NVIDIA's cuBLAS and cuDNN libraries; without them TAVIS falls back to the CPU on its own |
+### Transcripts: subtitles first, then the engine you choose
+
+Most videos come with subtitles, and those cost nothing. When a video has none (most TikToks), TAVIS downloads only the audio and sends it to the engine you pick under **Transcript**:
+
+| option | cost | what you need | notes |
+|---|---|---|---|
+| `auto` (default) | | | subtitles, else Whisper on your computer, else the first service with a key |
+| `subtitles` | free | nothing | the creator's subtitles, or the platform's automatic captions in the spoken language |
+| `whisper` | free, offline | `bash install.sh --with-whisper` | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) on your computer. Pick the model size in the interface (`turbo` by default, down to `tiny` for slow machines). Uses the GPU when it can, the CPU otherwise |
+| `elevenlabs` | pay per use | `ELEVENLABS_API_KEY` | ElevenLabs Scribe (`scribe_v2`, change with `TAVIS_STT_ELEVENLABS_MODEL`) |
+| `openai` | pay per use | `OPENAI_API_KEY` | `whisper-1`, change with `TAVIS_STT_OPENAI_MODEL` |
+| `groq` | cheap, very fast | `GROQ_API_KEY` | `whisper-large-v3-turbo` |
+| `custom` | yours | `TAVIS_STT_BASE_URL` (+ `TAVIS_STT_API_KEY`, `TAVIS_STT_MODEL`) | any server with an OpenAI-style `/audio/transcriptions` endpoint: faster-whisper-server, speaches, LocalAI, your company's gateway |
+
+Services that cap uploads at 25 MB get the audio squeezed to mono speech quality first, when ffmpeg is installed. The language of the audio is always detected, whatever language you want the card in.
 
 ### Signing in to TikTok
 
@@ -172,7 +201,7 @@ The skill that gets written ends with where it came from:
 
 ```markdown
 ---
-Source: https://www.youtube.com/watch?v=bjdBVZa66oU — Claude, 2026-02-27. Extracted with TAVIS on 2026-09-23 (Claude Code (your subscription); platform automatic captions (en-orig)).
+Source: https://www.youtube.com/watch?v=bjdBVZa66oU, by Claude, 2026-02-27. Extracted with TAVIS on 2026-09-23 (Claude Code (your subscription); platform automatic captions (en-orig)).
 Warnings at extraction: none
 ```
 
@@ -183,7 +212,7 @@ Yes: even Anthropic's own video gets a `sponsored` warning. That 3-minute video 
 ```
 tavis                  open the interface (same as: tavis ui)
 tavis ui --port 4747 --no-browser
-tavis learn <url> [--brain claude-code|anthropic|ollama|none] [--model M]
+tavis learn <url> [--brain claude-code|codex|gemini|anthropic|openai|deepseek|…|ollama|none] [--model M]
                   [--transcriber auto|subtitles|whisper] [--lang it]
                   [--yes | --no] [--overwrite] [--keep DIR]
 tavis list @creator [--platform tiktok|youtube|search] [--limit 30]
@@ -193,7 +222,7 @@ tavis doctor           what is installed, which brains are ready
 
 ## FAQ
 
-**Do I need an API key?** No. If you have Claude Code, TAVIS uses your subscription through `claude -p`. Ollama and `none` need nothing at all. A key is only one of the options.
+**Do I need an API key, or a local model?** Neither. A plan you already pay for is enough: Claude Code, Codex (ChatGPT) or Gemini CLI. Ollama, LM Studio and `none` need no account at all. Keys are one option among many.
 
 **Does it work offline?** With `--brain ollama --transcriber whisper`, yes, once the video's audio is downloaded.
 
@@ -234,6 +263,6 @@ Installed skills stay in `~/.claude/skills/<name>/`. Delete the ones you no long
 
 ## Licence and credits
 
-MIT — see [LICENSE](LICENSE). Built on [yt-dlp](https://github.com/yt-dlp/yt-dlp), [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [Claude Code](https://claude.com/claude-code), the [Anthropic API](https://docs.anthropic.com), [Ollama](https://ollama.com) and [Playwright](https://playwright.dev).
+MIT, see [LICENSE](LICENSE). Built on [yt-dlp](https://github.com/yt-dlp/yt-dlp), [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [Claude Code](https://claude.com/claude-code), the [Anthropic API](https://docs.anthropic.com), [Ollama](https://ollama.com) and [Playwright](https://playwright.dev).
 
 Made by [Beezy](https://studiobeezy.com). Part of an open-source project a month.

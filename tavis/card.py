@@ -54,7 +54,7 @@ How to work:
   that the person needs, mark it "(added)" and keep it short.
 - Be useful to this person. "for_your_work": how this applies to their business or job, using
   <person> (if it is empty, name the kinds of businesses and roles it fits and how). "for_you":
-  personal advantage — habits, how to set up their work, one thing to try this week. Specific
+  personal advantage: habits, how to set up their work, one thing to try this week. Specific
   actions, not platitudes.
 - Be skeptical. The human approval step exists for the warnings. Look for: sponsored (product
   placement, affiliate links, discount codes, "link in bio", the creator sells the tool or a
@@ -70,6 +70,7 @@ How to work:
   imperative, specific), "## Pitfalls", "## Limits" (what the video did not cover, where the
   method breaks). Sponsored tools appear as one option, never as the only way. 150 to 700
   words. No hype, no emojis. Do not add a source line: TAVIS adds it.
+- Write like a person: plain words, short sentences, no long dashes (use commas, colons or full stops).
 - "at" values are the [m:ss] markers from the transcript.
 - confidence: "high" (clear, specific, checkable method), "medium" or "low" (vague, partial
   transcript, big claims), and why in one sentence.
@@ -78,7 +79,7 @@ Write every human-readable value, including the skill body, in {language}.
 Keep the skill "name" (kebab-case) and the skill "description" in English: Claude matches requests
 against the description, and it must start with the words "Use when".
 
-Answer with ONE JSON object and nothing else — no prose before or after, no code fences:
+Answer with ONE JSON object and nothing else: no prose before or after, no code fences:
 {{
   "worth_a_skill": true,
   "verdict": "one sentence: is this worth turning into a skill, and why",
@@ -294,7 +295,7 @@ def analyze(brain, meta, tr, lang="en", profile=None):
         card = normalize(raw)
         if not card["skill"]["body"]:
             raise ValueError("The model returned a card without a skill body.")
-        if brain.name == "ollama":
+        if brain.name in ("ollama", "lmstudio"):
             card = second_pass(brain, meta, tr, card, profile, lang)
     card = keyword_warnings(card, meta, tr["text"])
     card["brain"] = brain.label + (f" · {brain.model}" if getattr(brain, "model", None) else "")
@@ -329,7 +330,7 @@ def render_skill(card, meta, today=None):
     warn = "; ".join(f"{w['kind']}: {w['text']}" for w in card["warnings"]) or "none"
     return (f"---\nname: {s['name']}\ndescription: \"{desc}\"\n---\n\n"
             f"{s['body'].strip()}\n\n---\n"
-            f"Source: {meta.get('url')} — {meta.get('creator')}, {meta.get('upload_date') or 'date unknown'}. "
+            f"Source: {meta.get('url')}, by {meta.get('creator')}, {meta.get('upload_date') or 'date unknown'}. "
             f"Extracted with TAVIS on {today} ({card.get('brain', '')}; {card.get('transcript_source', '')}).\n"
             f"Warnings at extraction: {warn}\n")
 
@@ -349,6 +350,72 @@ def install_skill(card, meta, overwrite=False):
 
 def history_key(meta):
     return slugify(f"{meta.get('platform')}-{meta.get('id')}", "video")
+
+
+EDIT_PROMPT = """You are editing a Claude skill (a SKILL.md file). Apply the change the person asks for and
+return the WHOLE file, nothing else: no comments, no code fences.
+
+Keep the file valid: it starts with the frontmatter block (--- / name: ... / description: "Use when ..." / ---).
+Keep "name" unless the person asks to rename it. The description must stay one English sentence starting
+with "Use when". Keep the footer that starts with "Source:" exactly as it is. Write in the language the body
+already uses unless asked otherwise. Write like a person: no long dashes.
+
+<change>
+{instruction}
+</change>
+
+<skill>
+{text}
+</skill>"""
+
+
+def installed_skills():
+    """Skills TAVIS wrote (their footer says so), newest first. Other skills are left alone."""
+    if not SKILLS_DIR.exists():
+        return []
+    out = []
+    for p in SKILLS_DIR.glob("*/SKILL.md"):
+        try:
+            text = p.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if "Extracted with TAVIS" in text:
+            m = re.search(r"^description:\s*\"?(.*?)\"?\s*$", text, re.M)
+            out.append({"name": p.parent.name, "path": str(p), "mtime": p.stat().st_mtime,
+                        "description": m.group(1) if m else ""})
+    return sorted(out, key=lambda s: -s["mtime"])
+
+
+def read_skill(name):
+    p = skill_path(name)
+    if not p.exists():
+        raise FileNotFoundError(name)
+    return p.read_text(encoding="utf-8")
+
+
+def check_skill_text(text):
+    """Refuse text that would break the skill: Claude Code needs the frontmatter to load it."""
+    t = (text or "").lstrip("﻿").strip()
+    m = re.match(r"^---\s*\n(.*?)\n---\s*\n", t, re.S)
+    if not m or not re.search(r"^name:\s*\S", m.group(1), re.M) or not re.search(r"^description:\s*\S", m.group(1), re.M):
+        raise ValueError("A SKILL.md must start with a --- block that has name: and description: lines.")
+    return t + "\n"
+
+
+def write_skill(name, text):
+    p = skill_path(name)
+    if not p.exists():
+        raise FileNotFoundError(name)
+    p.write_text(check_skill_text(text), encoding="utf-8")
+    return p
+
+
+def ai_edit(brain, text, instruction):
+    if brain.name == "none":
+        raise ValueError("Editing with AI needs a brain. Pick one in Setup, or edit the text directly.")
+    answer = brain.complete(EDIT_PROMPT.format(instruction=instruction.strip()[:4000], text=text))
+    answer = re.sub(r"^```(?:markdown|md)?\s*\n|\n```\s*$", "", answer.strip())
+    return check_skill_text(answer)
 
 
 def save_history(meta, card, status="pending"):

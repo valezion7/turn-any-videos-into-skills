@@ -54,4 +54,4 @@ def banner(version: str = "", colour: bool = True) -> str:
 
 if __name__ == "__main__":
     prepare_console()
-    print(banner("0.1.0"))
+    print(banner("0.2.0"))

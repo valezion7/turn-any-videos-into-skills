@@ -105,6 +105,71 @@ def test_install_refuses_overwrite():
     assert json.loads((card.HISTORY / "p-1.json").read_text(encoding="utf-8"))["status"] == "pending"
 
 
+def test_skill_text_and_ai_edit():
+    good = "---\nname: a\ndescription: \"Use when x\"\n---\n\nbody"
+    assert card.check_skill_text(good).endswith("body\n")
+    for bad in ("no frontmatter", "---\nname: a\n---\nbody"):
+        try:
+            card.check_skill_text(bad)
+            raise AssertionError("accepted a broken SKILL.md")
+        except ValueError:
+            pass
+
+    class Fake:
+        name = "fake"
+
+        def complete(self, prompt):
+            assert "<change>\nshorter\n</change>" in prompt
+            return "```markdown\n" + good + "\n```"
+    assert card.ai_edit(Fake(), good, "shorter").startswith("---\nname: a")
+
+
+def test_openai_compatible_model_pick():
+    from tavis import brain
+    p = brain.get("deepseek")
+    p._request = lambda path, body=None, timeout=0: {"data": [
+        {"id": "deepseek-embed"}, {"id": "deepseek-reasoner"}, {"id": "deepseek-chat"}]}
+    assert p.pick_model() == "deepseek-chat"
+    o = brain.get("openai")
+    o._request = lambda path, body=None, timeout=0: {"data": [
+        {"id": "whisper-1"}, {"id": "gpt-5-2026-01-01"}, {"id": "gpt-5"}, {"id": "text-embedding-3"}]}
+    assert o.pick_model() == "gpt-5"
+
+
+def test_custom_transcription_server():
+    """A local server in the OpenAI /audio/transcriptions format, like one you would run yourself."""
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    seen = {}
+
+    class H(BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def do_POST(self):
+            body = self.rfile.read(int(self.headers["Content-Length"]))
+            seen.update(path=self.path, auth=self.headers.get("authorization"),
+                        ok=b'name="model"' in body and b"fake-audio" in body)
+            out = json.dumps({"language": "it", "segments": [{"start": 1.5, "text": " Primo passo."},
+                                                            {"start": 4.0, "text": " Poi salva."}]}).encode()
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(out)))
+            self.end_headers()
+            self.wfile.write(out)
+
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    os.environ["TAVIS_STT_BASE_URL"] = f"http://127.0.0.1:{srv.server_port}/v1"
+    os.environ["TAVIS_STT_API_KEY"] = "k"
+    audio = os.path.join(os.environ["TAVIS_HOME"], "a.m4a")
+    open(audio, "wb").write(b"fake-audio")
+    segs, lang, label = transcribe._speech_to_text("custom", audio, None, lambda m: None)
+    srv.shutdown()
+    assert seen == {"path": "/v1/audio/transcriptions", "auth": "Bearer k", "ok": True}, seen
+    assert segs == [(1.5, "Primo passo."), (4.0, "Poi salva.")] and lang == "it", segs
+    assert label.startswith("Your transcription server")
+
+
 if __name__ == "__main__":
     tests = [v for k, v in dict(globals()).items() if k.startswith("test_")]
     for t in tests:

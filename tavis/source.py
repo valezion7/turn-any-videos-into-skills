@@ -28,14 +28,24 @@ def ytdlp_cmd():
 
 def _base():
     cmd = ytdlp_cmd() + ["--no-warnings", "--ignore-config"]
-    # YouTube needs a JavaScript runtime; yt-dlp only looks for deno unless told otherwise.
-    if not shutil.which("deno") and shutil.which("node"):
-        cmd += ["--js-runtimes", "node"]
+    cmd += _js_runtime()
     if COOKIES.exists():
         cmd += ["--cookies", str(COOKIES)]
     elif os.environ.get("TAVIS_COOKIES_FROM_BROWSER"):
         cmd += ["--cookies-from-browser", os.environ["TAVIS_COOKIES_FROM_BROWSER"]]
     return cmd
+
+
+def _js_runtime():
+    """YouTube needs a JavaScript runtime. install.sh puts deno in the venv, so nobody has to install Node."""
+    if shutil.which("deno"):
+        return []  # yt-dlp finds it on its own
+    try:
+        import deno
+        return ["--js-runtimes", "deno:" + deno.find_deno_bin()]
+    except (ImportError, OSError, RuntimeError):
+        pass
+    return ["--js-runtimes", "node"] if shutil.which("node") else []
 
 
 def _impersonate(args):
@@ -89,10 +99,26 @@ def resolve(query, platform="tiktok"):
     return f"https://www.tiktok.com/@{q.lstrip('@')}"
 
 
+def _thumb(item):
+    """The largest picture yt-dlp found for a video, or ''."""
+    thumbs = [t for t in (item.get("thumbnails") or []) if t.get("url") and "avatar" not in str(t.get("id"))]
+    if thumbs:
+        return max(thumbs, key=lambda t: (t.get("width") or 0, t.get("preference") or 0))["url"]
+    return item.get("thumbnail") or ""
+
+
+def _avatar(item):
+    for t in item.get("thumbnails") or []:
+        if "avatar" in str(t.get("id")) and t.get("url"):
+            return t["url"]
+    return ""
+
+
 def list_videos(query, platform="tiktok", limit=30):
     out = _run(["--flat-playlist", "-J", "--playlist-end", str(limit), resolve(query, platform)])
     data = json.loads(out)
     entries = data.get("entries") or [data]
+    avatar = _avatar(data)
     videos = []
     for e in entries:
         url = e.get("url") or e.get("webpage_url")
@@ -105,7 +131,9 @@ def list_videos(query, platform="tiktok", limit=30):
             "title": (e.get("title") or e.get("description") or "(untitled)").strip()[:160],
             "url": url,
             "duration": e.get("duration"),
-            "creator": e.get("uploader") or e.get("channel") or data.get("uploader"),
+            "creator": e.get("uploader") or e.get("channel") or data.get("uploader") or data.get("title"),
+            "thumbnail": _thumb(e),
+            "avatar": avatar,
         })
     return videos
 
@@ -127,6 +155,7 @@ def meta_of(info):
         "duration": info.get("duration"),
         "description": (info.get("description") or "")[:1500],
         "language": info.get("language"),
+        "thumbnail": _thumb(info),
     }
 
 

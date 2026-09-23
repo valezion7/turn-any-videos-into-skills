@@ -36,8 +36,8 @@ def show_card(meta, c):
 
 
 def cmd_learn(a):
-    meta, c = learn(a.url, a.brain, a.transcriber, a.lang, a.model,
-                    keep_dir=a.keep, progress=lambda m: print(f"{GREY}  .. {m}{RESET}", flush=True))
+    meta, c = learn(a.url, a.brain, a.transcriber, a.lang, a.model, keep_dir=a.keep,
+                    progress=lambda m: print(f"{GREY}  .. {m}{RESET}", flush=True), whisper_size=a.whisper_model)
     show_card(meta, c)
     if a.yes:
         choice = "y"
@@ -78,14 +78,17 @@ def cmd_doctor(_):
     print(f"  {ok(yt)} yt-dlp")
     print(f"  {ok(bool(shutil.which('node') or shutil.which('deno')))} JavaScript runtime for YouTube (node or deno)")
     print(f"  {ok(source.logged_in())} TikTok session ({source.COOKIES})")
-    print(f"  {ok(transcribe.whisper_available())} local Whisper (optional: bash install.sh --with-whisper)")
+    print("  transcribers (used when a video has no subtitles):")
+    for name, t in transcribe.status().items():
+        if name not in ("auto", "subtitles"):
+            print(f"    {ok(t['ok'])} {name:<12} {t.get('note', '')}")
     try:
         import playwright  # noqa: F401
         pw = True
     except ImportError:
         pw = False
     print(f"  {ok(pw)} login window (optional: bash install.sh --with-login)")
-    print("  brains:")
+    print("  brains (who writes the card):")
     for name, s in brain.status().items():
         print(f"    {ok(s['ok'])} {name:<12} {s['note']}")
     print(f"  skills are written to {card.SKILLS_DIR}")
@@ -105,7 +108,9 @@ def main(argv=None):
     le.add_argument("url")
     le.add_argument("--brain", default="claude-code", choices=list(brain.BRAINS))
     le.add_argument("--model", help="model name for the chosen brain")
-    le.add_argument("--transcriber", default="auto", choices=["auto", "subtitles", "whisper"])
+    le.add_argument("--transcriber", default="auto", choices=list(transcribe.status()),
+                    help="auto, subtitles, whisper (local), elevenlabs, openai, groq, custom")
+    le.add_argument("--whisper-model", choices=transcribe.WHISPER_SIZES, help="size of the local Whisper model")
     le.add_argument("--lang", default="en", help="language of the card: " + ", ".join(card.LANGS))
     le.add_argument("--keep", metavar="DIR", help="keep subtitles and audio in DIR instead of deleting them")
     g = le.add_mutually_exclusive_group()

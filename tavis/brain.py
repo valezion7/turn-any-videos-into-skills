@@ -1,4 +1,6 @@
-"""The four ways TAVIS can think: your Claude Code plan, the Anthropic API, Ollama, or no AI at all."""
+"""The ways TAVIS can think: a coding agent on your plan (Claude Code, Codex, Gemini CLI), any API
+(Anthropic or OpenAI-compatible: OpenAI, DeepSeek, OpenRouter, Groq, Mistral, xAI, Gemini), a local
+model (Ollama, LM Studio), or no AI at all."""
 import json
 import os
 import re
@@ -51,6 +53,166 @@ class ClaudeCode:
             raise BrainError("Claude Code failed: " + (r.stderr.strip() or r.stdout.strip())[-400:]
                              + "\nIs it logged in? Run `claude` once in a terminal to check.")
         return r.stdout
+
+
+def _run_cli(label, cmd, prompt, cwd, timeout=900):
+    try:
+        return subprocess.run(cmd, input=prompt, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=timeout, cwd=cwd)
+    except subprocess.TimeoutExpired:
+        raise BrainError(f"{label} did not answer within {timeout // 60} minutes.")
+
+
+class Codex:
+    """`codex exec` on your ChatGPT plan. Read-only sandbox, empty folder, nothing saved."""
+    name, label, max_chars = "codex", "Codex (your ChatGPT plan)", 150_000
+
+    def __init__(self, model=None):
+        self.model = model or os.environ.get("TAVIS_CODEX_MODEL")
+
+    @staticmethod
+    def check():
+        return (True, "found") if shutil.which("codex") else (False, "`codex` is not on PATH")
+
+    def complete(self, prompt):
+        exe = shutil.which("codex")
+        if not exe:
+            raise BrainError("Codex is not installed or not on PATH.")
+        with tempfile.TemporaryDirectory(prefix="tavis-brain-") as empty:
+            out = os.path.join(empty, "answer.txt")
+            cmd = [exe, "exec", "--sandbox", "read-only", "--skip-git-repo-check", "--ephemeral",
+                   "--output-last-message", out] + (["-m", self.model] if self.model else []) + ["-"]
+            r = _run_cli("Codex", cmd, prompt, empty)
+            answer = open(out, encoding="utf-8").read() if os.path.exists(out) else ""
+        if not answer.strip():
+            raise BrainError("Codex failed: " + (r.stderr.strip() or r.stdout.strip())[-400:]
+                             + "\nIs it logged in? Run `codex` once in a terminal to check.")
+        return answer
+
+
+class GeminiCLI:
+    """`gemini -p` on your Google account. Plan mode (read-only), no extensions, empty folder."""
+    name, label, max_chars = "gemini", "Gemini CLI (your Google account)", 150_000
+
+    def __init__(self, model=None):
+        self.model = model or os.environ.get("TAVIS_GEMINI_MODEL")
+
+    @staticmethod
+    def check():
+        if not shutil.which("gemini"):
+            return False, "`gemini` is not on PATH"
+        settings = os.path.join(os.path.expanduser("~"), ".gemini", "settings.json")
+        signed_in = any(os.environ.get(v) for v in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENAI_USE_VERTEXAI",
+                                                     "GOOGLE_GENAI_USE_GCA")) or (
+            os.path.exists(settings) and "auth" in open(settings, encoding="utf-8", errors="replace").read().lower())
+        return (True, "found") if signed_in else (False, "installed, not signed in: run `gemini` once")
+
+    def complete(self, prompt):
+        exe = shutil.which("gemini")
+        if not exe:
+            raise BrainError("Gemini CLI is not installed or not on PATH.")
+        cmd = [exe, "-p", "", "--approval-mode", "plan", "-e", "none"] + (["-m", self.model] if self.model else [])
+        with tempfile.TemporaryDirectory(prefix="tavis-brain-") as empty:
+            r = _run_cli("Gemini CLI", cmd, prompt, empty)
+        if r.returncode != 0 or not r.stdout.strip():
+            raise BrainError("Gemini CLI failed: " + (r.stderr.strip() or r.stdout.strip())[-400:]
+                             + "\nIs it signed in? Run `gemini` once in a terminal to check.")
+        return r.stdout
+
+
+class OpenAICompatible:
+    """Any API that speaks the OpenAI chat format: OpenAI, DeepSeek, OpenRouter, Groq, Mistral,
+    xAI, Google's Gemini API, LM Studio on this machine, or your own server.
+
+    The model is read from TAVIS_<NAME>_MODEL; without it TAVIS asks the provider which models
+    exist and picks a chat model, so a renamed model never breaks the default."""
+    name = label = key_env = base = ""
+    prefer, max_chars, local = (), 100_000, False
+    SKIP = re.compile(r"embed|whisper|tts|audio|image|dall|moderation|realtime|transcribe|search|vision|rerank|guard", re.I)
+
+    def __init__(self, model=None):
+        self.model = model or os.environ.get(f"TAVIS_{self.env}_MODEL") or None
+
+    @property
+    def env(self):
+        return self.name.upper().replace("-", "_")
+
+    @classmethod
+    def base_url(cls):
+        return (os.environ.get(f"TAVIS_{cls.name.upper().replace('-', '_')}_BASE_URL") or cls.base).rstrip("/")
+
+    @classmethod
+    def key(cls):
+        return os.environ.get(cls.key_env, "") if cls.key_env else ""
+
+    @classmethod
+    def check(cls):
+        if not cls.base_url():
+            return False, "set TAVIS_CUSTOM_BASE_URL"
+        if cls.name == "custom":
+            return True, cls.base_url()
+        if cls.local:
+            try:
+                with urllib.request.urlopen(cls.base_url() + "/models", timeout=2):
+                    return True, "server running"
+            except OSError:
+                return False, "server not running"
+        return (True, "key in environment") if cls.key() else (False, f"set {cls.key_env}")
+
+    def _request(self, path, body=None, timeout=600):
+        headers = {"content-type": "application/json"}
+        if self.key():
+            headers["authorization"] = "Bearer " + self.key()
+        req = urllib.request.Request(self.base_url() + path, headers=headers,
+                                     data=json.dumps(body).encode() if body else None)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            raise BrainError(f"{self.label} {e.code}: {e.read().decode(errors='replace')[:400]}")
+        except OSError as e:
+            raise BrainError(f"Cannot reach {self.label}: {e}")
+
+    def pick_model(self):
+        ids = [m.get("id", "") for m in self._request("/models", timeout=20).get("data", [])]
+        chat = [i for i in ids if i and not self.SKIP.search(i)]
+        for want in self.prefer:
+            hit = [i for i in chat if want in i.lower()]
+            if hit:
+                return sorted(hit, key=len)[0]  # the plain name, not a dated snapshot
+        if not chat:
+            raise BrainError(f"{self.label} lists no chat model. Set TAVIS_{self.env}_MODEL.")
+        return chat[0]
+
+    def complete(self, prompt):
+        self.model = self.model or self.pick_model()
+        data = self._request("/chat/completions", {
+            "model": self.model, "temperature": 0.2,
+            "messages": [{"role": "user", "content": prompt}]}, timeout=900)
+        try:
+            return data["choices"][0]["message"]["content"] or ""
+        except (KeyError, IndexError, TypeError):
+            raise BrainError(f"{self.label} returned no answer: {str(data)[:300]}")
+
+
+def _provider(name, label, key_env, base, prefer=(), local=False, max_chars=100_000):
+    return type(name, (OpenAICompatible,), dict(name=name, label=label, key_env=key_env, base=base,
+                                                prefer=prefer, local=local, max_chars=max_chars))
+
+
+PROVIDERS = [
+    _provider("openai", "OpenAI API", "OPENAI_API_KEY", "https://api.openai.com/v1", ("gpt-5", "gpt-4.1", "gpt-4o")),
+    _provider("deepseek", "DeepSeek API", "DEEPSEEK_API_KEY", "https://api.deepseek.com/v1", ("deepseek-chat",)),
+    _provider("openrouter", "OpenRouter", "OPENROUTER_API_KEY", "https://openrouter.ai/api/v1",
+              ("anthropic/claude", "openai/gpt-5", "deepseek/deepseek-chat")),
+    _provider("gemini-api", "Google Gemini API", "GEMINI_API_KEY",
+              "https://generativelanguage.googleapis.com/v1beta/openai", ("gemini-2.5-pro", "gemini-2.5-flash", "gemini")),
+    _provider("groq", "Groq", "GROQ_API_KEY", "https://api.groq.com/openai/v1", ("llama", "qwen", "gpt-oss")),
+    _provider("mistral", "Mistral API", "MISTRAL_API_KEY", "https://api.mistral.ai/v1", ("mistral-large", "mistral-medium")),
+    _provider("xai", "xAI Grok API", "XAI_API_KEY", "https://api.x.ai/v1", ("grok-4", "grok-3", "grok")),
+    _provider("lmstudio", "LM Studio (local)", "", "http://127.0.0.1:1234/v1", (), local=True, max_chars=40_000),
+    _provider("custom", "Your OpenAI-compatible server", "TAVIS_CUSTOM_API_KEY", "", ()),
+]
 
 
 class AnthropicAPI:
@@ -120,6 +282,34 @@ class Ollama:
                     b > cap, -b if b <= cap else b)
         return [m["name"] for m in sorted(chat, key=rank)]
 
+    @staticmethod
+    def running():
+        try:
+            with urllib.request.urlopen(OLLAMA_URL + "/api/version", timeout=2):
+                return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def pull(model, log):
+        """Download a model through the local Ollama, reporting progress in whole percents."""
+        req = urllib.request.Request(OLLAMA_URL + "/api/pull", data=json.dumps({"model": model}).encode(),
+                                     headers={"content-type": "application/json"})
+        last = None
+        try:
+            with urllib.request.urlopen(req, timeout=7200) as r:
+                for line in r:
+                    ev = json.loads(line or b"{}")
+                    if ev.get("error"):
+                        raise BrainError(f"Ollama could not download {model}: {ev['error']}")
+                    done, total = ev.get("completed"), ev.get("total")
+                    step = f"{ev.get('status', '')} {int(done * 100 / total)}%" if done and total else ev.get("status", "")
+                    if step and step != last:
+                        log(step)
+                        last = step
+        except OSError as e:
+            raise BrainError(f"Ollama is not reachable: {e}")
+
     @classmethod
     def default_model(cls):
         m = cls.models()
@@ -159,7 +349,8 @@ class NoAI:
         return True, "always available"
 
 
-BRAINS = {b.name: b for b in (ClaudeCode, AnthropicAPI, Ollama, NoAI)}
+BRAINS = {b.name: b for b in (ClaudeCode, Codex, GeminiCLI, AnthropicAPI, *PROVIDERS, Ollama, NoAI)}
+LOCAL = {"ollama", "lmstudio"}  # thinner answers: card.py gives them a second pass
 
 
 def get(name, model=None):
