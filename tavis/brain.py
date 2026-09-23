@@ -230,7 +230,7 @@ PROVIDERS = [
 
 
 class AnthropicAPI:
-    """Pay-per-use with ANTHROPIC_API_KEY. The key is read from the environment and never stored."""
+    """Pay-per-use with ANTHROPIC_API_KEY, from the environment or pasted in the setup (see keys.py)."""
     name, label, max_chars = "anthropic", "Anthropic API (your key)", 150_000
 
     def __init__(self, model=None):

@@ -96,6 +96,8 @@ def cmd_doctor(_):
 
 def main(argv=None):
     prepare_console()
+    from . import keys
+    keys.load()  # keys saved from the setup page work in the terminal too
     p = argparse.ArgumentParser(prog="tavis", description="Turn any video into a skill for Claude.")
     p.add_argument("--version", action="version", version=f"tavis {__version__}")
     sub = p.add_subparsers(dest="cmd")

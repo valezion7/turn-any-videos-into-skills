@@ -9,11 +9,11 @@ Give it a video that teaches something. You get a learning card to read, and a s
   |   '-'   '-'   |       ██    ██   ██  ██  ██  ██      ██
    \  '._____.'  /        ██    ██   ██   ████   ██ ███████
     '-.._____..-'
-                     turn any video into a skill   ·   v0.2.0
+                     turn any video into a skill   ·   v0.3.0
 ```
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-FF6A00.svg)](LICENSE)
-![Version](https://img.shields.io/badge/version-0.2.0-0B0A09.svg)
+![Version](https://img.shields.io/badge/version-0.3.0-0B0A09.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-0B0A09.svg)
 [![Stars](https://img.shields.io/github/stars/valezion7/turn-any-videos-into-skills?style=social)](https://github.com/valezion7/turn-any-videos-into-skills)
 
@@ -43,7 +43,12 @@ bash install.sh --all
 tavis
 ```
 
-Your browser opens on `http://127.0.0.1:4747`. The first time, a **four-step setup** asks who should read the videos (it shows what it found on your computer), who you are, and whether you want TikTok. Every step can be skipped.
+Your browser opens on `http://127.0.0.1:4747` with a **four-step setup** (every time, until you untick the box on its last step):
+
+1. **Connect the AI.** TAVIS shows what it found. **Sign in** opens a terminal with the tool's own login (Claude Code, Codex, Gemini CLI). **Connect** takes an API key. **Test** asks the model a one-word question and tells you if it answered and how fast. A refused key is never kept.
+2. **Who you are.** Two lines, or **Fill it from my AI memory**.
+3. **TikTok and transcription.** The TikTok QR code, and optional keys for Groq, ElevenLabs or OpenAI for videos without subtitles.
+4. **Ready.**
 
 Then pick **TikTok** or **YouTube** and type just the username. It stays when you switch platform. Or pick **Link** and paste any video link. The creator's videos appear as a grid, with the selected one on the right. Press **Skill-ize**, read the card, then **Learn this skill**. The skill is now in `~/.claude/skills/`, and Claude Code uses it in your next session.
 
@@ -137,7 +142,7 @@ TAVIS finds what you already have. The setup page and `tavis doctor` show each o
 | `lmstudio` | free, offline | [LM Studio](https://lmstudio.ai) with its local server on | same second pass as Ollama |
 | `none` | free | nothing | pulls out the sentences that look like steps and **says plainly** that no model read the video |
 
-For every API brain the model is `TAVIS_<NAME>_MODEL` (for example `TAVIS_DEEPSEEK_MODEL`). Without it, TAVIS asks the provider which models exist and picks a chat model, so a renamed model does not break anything. Keys are read from the environment and never saved.
+For every API brain the model is `TAVIS_<NAME>_MODEL` (for example `TAVIS_DEEPSEEK_MODEL`). Without it, TAVIS asks the provider which models exist and picks a chat model, so a renamed model does not break anything. Keys pasted in the setup are saved only on this computer, in `~/.tavis/keys.json`, and removed with one click. A key set in your environment always wins.
 
 ### Transcripts: subtitles first, then the engine you choose
 

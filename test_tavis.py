@@ -186,6 +186,27 @@ def test_uninstall_only_touches_tavis_skills():
     assert other.exists()
 
 
+def test_keys_saved_from_the_page():
+    from tavis import keys, brain
+    os.environ.pop("DEEPSEEK_API_KEY", None)
+    keys._from_env.discard("DEEPSEEK_API_KEY")
+    keys.save("DEEPSEEK_API_KEY", "sk-test-123456789")
+    assert os.environ["DEEPSEEK_API_KEY"] == "sk-test-123456789"
+    assert brain.status()["deepseek"]["ok"]
+    assert keys.masked()["DEEPSEEK_API_KEY"] == {"source": "saved", "hint": "…6789"}
+    assert "sk-test" not in json.dumps(keys.masked())
+    os.environ.pop("DEEPSEEK_API_KEY")
+    keys.load()
+    assert os.environ["DEEPSEEK_API_KEY"] == "sk-test-123456789"  # survives a restart
+    keys.save("DEEPSEEK_API_KEY", "")
+    assert "DEEPSEEK_API_KEY" not in os.environ and "DEEPSEEK_API_KEY" not in keys.masked()
+    try:
+        keys.save("PATH", "x")
+        raise AssertionError("accepted an arbitrary variable")
+    except ValueError:
+        pass
+
+
 def test_openai_compatible_model_pick():
     from tavis import brain
     p = brain.get("deepseek")

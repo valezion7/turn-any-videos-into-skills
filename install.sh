@@ -90,5 +90,5 @@ case ":$PATH:" in
   *) echo "  Installed. Add ~/bin to your PATH once, then type tavis:"
      echo "    echo 'export PATH=\"\$HOME/bin:\$PATH\"' >> ~/.bashrc && source ~/.bashrc" ;;
 esac
-echo "  The first time, a short setup in the browser helps you pick who reads the videos."
+echo "  Type tavis: a short setup opens in the browser to connect your AI (you can turn it off)."
 echo "  Check the setup any time with:  tavis doctor"

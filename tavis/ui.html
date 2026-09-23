@@ -143,7 +143,8 @@ a.t:hover{color:var(--ember)}
 .wbox .lead{color:var(--grey);margin:0 0 18px;max-width:60ch}
 .opt{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer}
 .opt:has(input:checked){border-color:var(--ember);background:var(--field)}
-.opt.off{opacity:.66;cursor:default}
+.opt.off{cursor:default;border-style:dashed}
+.opt.off b{color:var(--grey)}
 .opt input{margin:4px 0 0;accent-color:var(--ember)}
 .opt b{font-weight:600}
 .opt .st{grid-column:2;font-size:.84rem;color:var(--grey)}
@@ -223,6 +224,18 @@ a.t:hover{color:var(--ember)}
 .linkbtn{background:none;border:0;color:var(--grey);font-size:.78rem;cursor:pointer;text-decoration:underline;padding:2px}
 .linkbtn:hover{color:var(--paper)}
 .wclose{float:right;margin:-8px -8px 0 0}
+.opt{grid-template-columns:auto 1fr}
+.opt .acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.opt .acts:empty{display:none}
+.keyrow{display:flex;gap:6px;flex:1;min-width:240px}
+.keyrow input{flex:1;padding:7px 10px;font-family:var(--mono);font-size:.8rem}
+.go.mini{padding:7px 12px;font-size:.8rem}
+.dotslot{width:13px}
+.bad{color:var(--bad)}
+.tres{font-size:.82rem}
+.check{flex-direction:row!important;align-items:center;gap:8px!important;color:var(--paper)!important;margin-top:14px}
+.check input{accent-color:var(--ember);width:16px;height:16px}
+a.ghost{text-decoration:none;display:inline-block}
 .none{color:var(--dim)}
 .added{font:600 .66rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);background:var(--grey);border-radius:3px;padding:2px 5px;margin-left:4px;vertical-align:1px;white-space:nowrap}
 .skill{display:grid;gap:10px}
@@ -893,32 +906,115 @@ async function loadHistory() {
 $("#clearHist").onclick = () => confirmInline($("#histSlot"), "Delete every card in Recent? Installed skills stay.", "Delete all", async () => {
   const r = await api("/api/history/clear", {}); loadHistory(); show("home"); flash(`${r.removed} cards deleted.`);
 });
-// ---- first-run setup: four short steps, every one can be skipped ----
-let wStep = 0, wBrain = null;
-const GROUPS = {"claude-code": "plan", codex: "plan", gemini: "plan", ollama: "local", lmstudio: "local", none: "none"};
-const HOWTO = {
-  "claude-code": `Install <a href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a>, run <code>claude</code> once to sign in.`,
-  codex: `Install <a href="https://github.com/openai/codex" target="_blank" rel="noopener">Codex</a>, run <code>codex</code> once to sign in.`,
-  gemini: `Install <a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener">Gemini CLI</a>, run <code>gemini</code> once to sign in.`,
-  lmstudio: `Open <a href="https://lmstudio.ai" target="_blank" rel="noopener">LM Studio</a>, load a model and start its local server.`,
-  custom: `Set <code>TAVIS_CUSTOM_BASE_URL</code> (and <code>TAVIS_CUSTOM_API_KEY</code> if it needs one).`,
+// ---- setup at every launch: connect a brain, test it, say who you are, TikTok, done ----
+let wStep = 0, wBrain = null, wMoreOpen = false;
+const tested = {};  // brain -> {ok, text}
+const PLAN = {
+  "claude-code": {site: "https://claude.com/claude-code", tool: "claude-code"},
+  codex: {site: "https://github.com/openai/codex", tool: "codex"},
+  gemini: {site: "https://github.com/google-gemini/gemini-cli", tool: "gemini"},
 };
+const KEYED = {anthropic: "ANTHROPIC_API_KEY", openai: "OPENAI_API_KEY", deepseek: "DEEPSEEK_API_KEY",
+  openrouter: "OPENROUTER_API_KEY", "gemini-api": "GEMINI_API_KEY", groq: "GROQ_API_KEY", mistral: "MISTRAL_API_KEY",
+  xai: "XAI_API_KEY"};
+const WHERE = {anthropic: "console.anthropic.com", openai: "platform.openai.com/api-keys", deepseek: "platform.deepseek.com",
+  openrouter: "openrouter.ai/keys", "gemini-api": "aistudio.google.com/apikey", groq: "console.groq.com/keys",
+  mistral: "console.mistral.ai", xai: "console.x.ai"};
+
+function testLine(k) {
+  const t = tested[k];
+  if (!t) return "";
+  return `<span class="${t.ok ? "ok" : "bad"}" role="status">${t.ok ? "✓ " : "✗ "}${esc(t.text)}</span>`;
+}
+function brainCard(k) {
+  const b = st.brains[k], inst = st.installed || {};
+  let body = "", actions = "";
+  if (PLAN[k]) {
+    const installed = k === "claude-code" ? inst.claude : k === "codex" ? !!st.brains.codex.ok || false : true;
+    body = b.ok ? "Uses your subscription. No key." : esc(b.note);
+    actions = b.ok || /not signed in/.test(b.note)
+      ? `<button class="ghost mini" data-signin="${k}" type="button">Sign in</button> <button class="ghost mini" data-test="${k}" type="button">Test</button>`
+      : `<a class="ghost mini" href="${PLAN[k].site}" target="_blank" rel="noopener">How to install ↗</a>`;
+  } else if (KEYED[k]) {
+    const kk = KEYED[k], have = st.keys && st.keys[kk];
+    body = have ? `Key ${esc(have.hint)} (${esc(have.source)})` : `Paste a key from <a href="https://${WHERE[k]}" target="_blank" rel="noopener">${WHERE[k]}</a>. Saved only on this computer.`;
+    actions = have
+      ? `<button class="ghost mini" data-test="${k}" type="button">Test</button>${have.source === "saved" ? ` <button class="ghost mini" data-forget="${kk}" type="button">Remove key</button>` : ""}`
+      : `<form class="keyrow" onsubmit="return false"><input type="password" autocomplete="off" spellcheck="false" placeholder="key" data-key="${kk}" aria-label="${esc(b.label)} key">
+         <button class="go mini" data-connect="${k}" type="submit">Connect</button></form>`;
+  } else if (k === "ollama") {
+    body = ollamaNote();
+    actions = st.ollama_models.length ? `<button class="ghost mini" data-test="ollama" type="button">Test</button>` : "";
+  } else if (k === "lmstudio") {
+    body = b.ok ? "Server running." : `Open <a href="https://lmstudio.ai" target="_blank" rel="noopener">LM Studio</a>, load a model, start its local server.`;
+    actions = b.ok ? `<button class="ghost mini" data-test="lmstudio" type="button">Test</button>` : "";
+  } else if (k === "none") {
+    body = "Pulls the steps out of the transcript and says plainly that nothing was understood.";
+  } else {
+    body = b.ok ? esc(b.note) : `Set <code>TAVIS_CUSTOM_BASE_URL</code> for your own OpenAI-compatible server.`;
+  }
+  const pick = b.ok ? `<input type="radio" name="wb" value="${k}" ${wBrain === k ? "checked" : ""} aria-label="Use ${esc(b.label)}">` : `<span class="dotslot"></span>`;
+  return `<div class="opt ${b.ok ? "" : "off"}" data-row="${k}">${pick}
+    <div><b>${esc(b.label)}</b><div class="st">${body}</div>
+    <div class="acts">${actions} <span class="tres" id="t-${k}">${testLine(k)}</span></div></div></div>`;
+}
 function ollamaNote() {
-  const inst = st.installed, models = st.ollama_models;
-  if (models.length) return `<span class="ok">Ready: will use ${esc(models[0])}.</span>`;
+  const inst = st.installed || {}, models = st.ollama_models;
+  if (models.length) return `Ready: will use ${esc(models[0])}.`;
   if (!inst.ollama) return `Optional. <a href="https://ollama.com/download" target="_blank" rel="noopener">Get Ollama</a>, then press Check again.`;
   if (!inst.ollama_running) return `Installed but not running. Open the Ollama app, then press Check again.`;
-  return `Running with no chat model. <button class="ghost mini" id="pullBtn" type="button">Download ${esc(st.starter_model)} (about 5 GB)</button> <span id="pullLog"></span>`;
+  return `Running with no chat model. <button class="ghost mini" id="pullBtn" type="button">Download ${esc(st.starter_model)} (about 5 GB)</button> <span id="pullLog" role="status"></span>`;
 }
-function brainRow(k) {
-  const b = st.brains[k], kind = GROUPS[k] || "api";
-  const what = {plan: "uses your subscription, no key", api: "API key, pay per use", local: "on this computer, free, offline", none: "always works"}[kind];
-  let note = k === "ollama" ? ollamaNote()
-    : b.ok ? `<span class="ok">Ready.</span>`
-    : HOWTO[k] || `Set <code>${esc(b.note.replace(/^set /, ""))}</code> in your terminal before starting <code>tavis</code>. TAVIS never saves keys.`;
-  if (k === "none") note = "Pulls the steps out of the transcript and says plainly that nothing was understood.";
-  return `<label class="opt ${b.ok ? "" : "off"}"><input type="radio" name="wb" value="${k}" ${b.ok ? "" : "disabled"} ${wBrain === k ? "checked" : ""}>
-    <b>${esc(b.label)} <span class="no" style="font-weight:400">· ${what}</span></b><span class="st">${note}</span></label>`;
+async function runTest(k) {
+  const el = $(`#t-${k}`); if (el) el.innerHTML = `<span class="hint">testing…</span>`;
+  try {
+    const j = await waitJob((await api("/api/test", {brain: k, model: k === "ollama" ? (st.ollama_models[0] || null) : null})).job);
+    tested[k] = {ok: j.ok, text: j.ok ? `Answered in ${j.seconds} s${j.model ? " · " + j.model : ""}` : `Answered, but not as expected: “${j.answer}”`};
+    if (j.ok) wBrain = k;
+  } catch (e) {
+    const m = e.message, refused = /\b(401|403)\b|invalid.*key|authentication/i.test(m);
+    tested[k] = {ok: false, refused,
+                 text: refused ? "The key was refused. Check it is copied whole and still active."
+                     : /not (logged|signed) in|please log ?in|run .* once/i.test(m) ? "Not signed in yet. Press Sign in, finish in the terminal, then Test again."
+                     : m.split("\n")[0].slice(0, 180)};
+  }
+  wRender();
+}
+function wireStep0(body) {
+  body.querySelectorAll("input[name=wb]").forEach(r => r.onchange = () => { wBrain = r.value; });
+  body.querySelectorAll("[data-test]").forEach(b => b.onclick = () => runTest(b.dataset.test));
+  body.querySelectorAll("[data-signin]").forEach(b => b.onclick = async () => {
+    const r = await api("/api/signin", {tool: b.dataset.signin});
+    tested[b.dataset.signin] = {ok: false, text: r.message}; wRender();
+  });
+  body.querySelectorAll("[data-connect]").forEach(b => b.onclick = async () => {
+    const k = b.dataset.connect, input = body.querySelector(`[data-key="${KEYED[k]}"]`);
+    if (!input.value.trim()) { input.focus(); return; }
+    try {
+      await api("/api/keys", {name: KEYED[k], value: input.value}); await loadStatus(); wBrain = k; await runTest(k);
+      if (tested[k] && tested[k].refused) { await api("/api/keys", {name: KEYED[k], value: ""}); await loadStatus(); wRender(); }  // never keep a refused key
+    }
+    catch (e) { tested[k] = {ok: false, text: e.message}; wRender(); }
+  });
+  body.querySelectorAll("[data-forget]").forEach(b => b.onclick = async () => {
+    await api("/api/keys", {name: b.dataset.forget, value: ""}); await loadStatus(); wRender();
+  });
+  $("#recheck").onclick = async () => { await loadStatus(); wRender(); };
+  const pb = $("#pullBtn");
+  if (pb) pb.onclick = async () => {
+    pb.disabled = true;
+    try { await waitJob((await api("/api/pull", {model: st.starter_model})).job, log => { $("#pullLog").textContent = log[log.length - 1] || "starting…"; });
+      await loadStatus(); wBrain = "ollama"; wRender();
+    } catch (e) { $("#pullLog").textContent = e.message; pb.disabled = false; }
+  };
+}
+function sttRow(k, label, envName, where) {
+  const have = st.keys && st.keys[envName];
+  return `<div class="opt ${have ? "" : "off"}"><span class="dotslot"></span><div><b>${label}</b>
+    <div class="st">${have ? `Key ${esc(have.hint)} (${esc(have.source)})` : `Paste a key from <a href="https://${where}" target="_blank" rel="noopener">${where}</a>.`}</div>
+    <div class="acts">${have ? (have.source === "saved" ? `<button class="ghost mini" data-forget="${envName}" type="button">Remove key</button>` : "")
+      : `<form class="keyrow" onsubmit="return false"><input type="password" autocomplete="off" placeholder="key" data-key="${envName}" aria-label="${label} key">
+         <button class="go mini" data-savekey="${envName}" type="submit">Save</button></form>`}</div></div></div>`;
 }
 function wRender() {
   document.querySelectorAll("#wSteps i").forEach((el, i) => el.classList.toggle("on", i <= wStep));
@@ -926,24 +1022,19 @@ function wRender() {
   $("#wNext").textContent = wStep === 3 ? "Start using TAVIS" : "Next";
   const body = $("#wBody");
   if (wStep === 0) {
-    const keys = Object.keys(st.brains);
-    if (!wBrain || !st.brains[wBrain].ok) wBrain = keys.find(k => st.brains[k].ok);
-    const ready = keys.filter(k => st.brains[k].ok || k === "ollama" && st.installed.ollama_running);
-    const more = keys.filter(k => !ready.includes(k));
-    body.innerHTML = `<h2 id="wTitle">Who reads the videos?</h2>
-      <p class="lead">Any one of these is enough. You do not need a local model: a plan you already pay for (Claude, ChatGPT, Google) or an API key works, and with nothing at all TAVIS still runs without AI. You can change it any time.</p>
-      ${ready.map(brainRow).join("")}
-      <details style="margin:10px 0"><summary>More options (${more.length}): other plans, API keys, local models</summary><div style="margin-top:8px">${more.map(brainRow).join("")}</div></details>
+    const keysList = Object.keys(st.brains);
+    if (!wBrain || !st.brains[wBrain] || !st.brains[wBrain].ok) wBrain = keysList.find(k => st.brains[k].ok);
+    const ready = keysList.filter(k => st.brains[k].ok && k !== "none");
+    const more = keysList.filter(k => !ready.includes(k) && k !== "none");
+    body.innerHTML = `<h2 id="wTitle">Connect the AI that reads the videos</h2>
+      <p class="lead">One is enough. Press <b>Test</b> to check it really answers. No local model needed: a plan you already pay for or an API key works, and with nothing at all TAVIS still runs without AI.</p>
+      ${ready.length ? `<p class="label">Found on this computer</p>${ready.map(brainCard).join("")}` : `<p class="hint">Nothing connected yet: pick one below.</p>`}
+      <details ${ready.length && !wMoreOpen ? "" : "open"} id="wMore" style="margin:12px 0"><summary>Connect another: plans, API keys, local models (${more.length})</summary>
+        <div style="margin-top:8px">${more.map(brainCard).join("")}</div></details>
+      ${brainCard("none")}
       <button class="ghost mini" id="recheck" type="button">Check again</button>`;
-    body.querySelectorAll("input[name=wb]").forEach(r => r.onchange = () => { wBrain = r.value; });
-    $("#recheck").onclick = async () => { await loadStatus(); wRender(); };
-    const pb = $("#pullBtn");
-    if (pb) pb.onclick = async () => {
-      pb.disabled = true;
-      try { await waitJob((await api("/api/pull", {model: st.starter_model})).job, log => { $("#pullLog").textContent = log[log.length - 1] || "starting…"; });
-        await loadStatus(); wBrain = "ollama"; wRender();
-      } catch (e) { $("#pullLog").textContent = e.message; pb.disabled = false; }
-    };
+    $("#wMore").ontoggle = e => { wMoreOpen = e.target.open; };
+    wireStep0(body);
   } else if (wStep === 1) {
     body.innerHTML = `<h2 id="wTitle">Tell TAVIS who you are</h2>
       <p class="lead">One or two lines make the advice about your work instead of anyone's. Stored only on this computer.</p>
@@ -954,17 +1045,33 @@ function wRender() {
     $("#wLang").value = $("#lang").value;
     $("#wMem").onclick = () => fillFromMemory($("#wProfile"), $("#wMemMsg"));
   } else if (wStep === 2) {
-    body.innerHTML = `<h2 id="wTitle">TikTok, if you want it</h2>
-      <p class="lead">TikTok only opens videos to signed-in people. A window will show TikTok's QR code: scan it with the TikTok app and you are done. TAVIS never sees a password. YouTube and links work without this.</p>
-      <p>${st.logged_in ? `<span class="ok">Signed in to TikTok.</span>` : `<button class="go" id="wLogin" type="button" style="padding:12px 18px">Show the QR code</button> <span class="hint" id="wLoginMsg"></span>`}</p>`;
+    const tr = st.transcribers || {};
+    body.innerHTML = `<h2 id="wTitle">Videos: TikTok and transcription</h2>
+      <p class="lead">TikTok only opens videos to signed-in people: a window shows its QR code, scan it with the TikTok app. TAVIS never sees a password. YouTube and links work without this.</p>
+      <p>${st.logged_in ? `<span class="ok">✓ Signed in to TikTok.</span>` : `<button class="go" id="wLogin" type="button" style="padding:12px 18px">Show the TikTok QR code</button> <span class="hint" id="wLoginMsg" role="status"></span>`}</p>
+      <p class="label" style="margin-top:18px">Videos without subtitles</p>
+      <p class="hint" style="margin:0 0 10px">Most TikToks have none. ${tr.whisper && tr.whisper.ok ? `<span class="ok">Whisper runs on this computer, free.</span> A service below is only faster.` : "Whisper is not installed (bash install.sh --with-whisper). Or use a service:"}</p>
+      ${sttRow("groq", "Groq (cheap and very fast)", "GROQ_API_KEY", "console.groq.com/keys")}
+      ${sttRow("elevenlabs", "ElevenLabs Scribe", "ELEVENLABS_API_KEY", "elevenlabs.io/app/settings/api-keys")}
+      ${sttRow("openai", "OpenAI Whisper", "OPENAI_API_KEY", "platform.openai.com/api-keys")}`;
     const L = $("#wLogin");
     if (L) L.onclick = async () => { await api("/api/login", {}); $("#wLoginMsg").textContent = "Scan the code in the window that opened…";
       const t = setInterval(async () => { await loadStatus(); if (st.logged_in || st.login.state === "error") { clearInterval(t); wRender(); } }, 2000); };
+    body.querySelectorAll("[data-savekey]").forEach(b => b.onclick = async () => {
+      const input = body.querySelector(`[data-key="${b.dataset.savekey}"]`);
+      if (!input.value.trim()) return input.focus();
+      await api("/api/keys", {name: b.dataset.savekey, value: input.value}); await loadStatus(); wRender();
+    });
+    body.querySelectorAll("[data-forget]").forEach(b => b.onclick = async () => {
+      await api("/api/keys", {name: b.dataset.forget, value: ""}); await loadStatus(); wRender(); });
   } else {
     const name = st.brains[wBrain] ? st.brains[wBrain].label : "No AI";
+    const t = tested[wBrain];
     body.innerHTML = `<h2 id="wTitle">Ready</h2>
-      <p class="lead">Brain: <b>${esc(name)}</b>. TikTok: ${st.logged_in ? "signed in" : "not signed in (optional)"}.<br>
-      Pick TikTok or YouTube, type a username, choose a video, and read the card before anything reaches your AI.</p>`;
+      <p class="lead">Brain: <b>${esc(name)}</b>${t ? (t.ok ? ` <span class="ok">(tested ✓)</span>` : ` <span class="bad">(last test failed)</span>`) : ""}.
+      TikTok: ${st.logged_in ? "signed in" : "not signed in (optional)"}.<br>
+      Pick TikTok or YouTube, type a username, choose a video, and read the card before anything reaches your AI.</p>
+      <label class="check"><input type="checkbox" id="wShow" ${st.show_setup === false ? "" : "checked"}> Show this setup every time TAVIS starts</label>`;
   }
 }
 async function wNext() {
@@ -973,10 +1080,10 @@ async function wNext() {
     $("#lang").value = $("#wLang").value; localSet("lang", $("#wLang").value);
   }
   if (wStep === 3) {
-    await api("/api/setup", {brain: wBrain}); localSet("brain", wBrain);
-    $("#brain").value = wBrain; $("#wiz").hidden = true; loadStatus(); return;
+    await api("/api/setup", {brain: wBrain, show_at_start: $("#wShow").checked}); localSet("brain", wBrain);
+    await loadStatus(); $("#brain").value = wBrain; $("#brain").dispatchEvent(new Event("change")); closeWizard(); return;
   }
-  wStep++; wRender();
+  wStep++; wRender(); $("#wTitle").setAttribute("tabindex", "-1"); $("#wTitle").focus();
 }
 $("#wNext").onclick = wNext;
 $("#wBack").onclick = () => { if (wStep) { wStep--; wRender(); } };
@@ -995,7 +1102,7 @@ $("#wiz").addEventListener("keydown", e => {  // keep Tab inside the dialog whil
 loadStatus().then(() => {
   const saved = localGet("brain");
   if (saved && st.brains[saved] && st.brains[saved].ok) { $("#brain").value = saved; loadStatus(); }
-  if (!st.setup_done) openWizard();
+  if (!st.setup_done || st.show_setup !== false) openWizard();  // at every launch, unless switched off
 });
 loadHistory(); loadSkills();
 setInterval(() => { if (!document.hidden) loadStatus().catch(() => {}); }, 15000);

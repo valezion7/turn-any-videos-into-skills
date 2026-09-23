@@ -1,5 +1,5 @@
 """TAVIS — Turn Any VIdeo into Skills."""
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 def learn(url, brain_name="claude-code", transcriber="auto", lang="en", model=None,

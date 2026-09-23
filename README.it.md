@@ -9,11 +9,11 @@ Gli dai un video che insegna qualcosa. Ne esce una scheda da leggere e, se la ap
   |   '-'   '-'   |       ██    ██   ██  ██  ██  ██      ██
    \  '._____.'  /        ██    ██   ██   ████   ██ ███████
     '-.._____..-'
-                     turn any video into a skill   ·   v0.2.0
+                     turn any video into a skill   ·   v0.3.0
 ```
 
 [![Licenza: MIT](https://img.shields.io/badge/license-MIT-FF6A00.svg)](LICENSE)
-![Versione](https://img.shields.io/badge/version-0.2.0-0B0A09.svg)
+![Versione](https://img.shields.io/badge/version-0.3.0-0B0A09.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-0B0A09.svg)
 
 *[Read in English](README.md)*
@@ -42,7 +42,12 @@ bash install.sh --all
 tavis
 ```
 
-Si apre il browser su `http://127.0.0.1:4747`. La prima volta una **configurazione in quattro passi** chiede tre cose: chi deve leggere i video (e mostra cosa ha trovato sul tuo computer), chi sei, e se vuoi TikTok. Ogni passo si può saltare.
+Si apre il browser su `http://127.0.0.1:4747` con una **configurazione in quattro passi** (a ogni avvio, finché non togli la spunta nell'ultimo passo):
+
+1. **Collega l'AI.** TAVIS mostra cosa ha trovato. **Sign in** apre un terminale con l'accesso dello strumento (Claude Code, Codex, Gemini CLI). **Connect** accetta una chiave API. **Test** fa al modello una domanda di una parola e ti dice se ha risposto e in quanto tempo. Una chiave rifiutata non viene mai tenuta.
+2. **Chi sei.** Due righe, oppure **Fill it from my AI memory**.
+3. **TikTok e trascrizione.** Il QR di TikTok, e le chiavi facoltative di Groq, ElevenLabs o OpenAI per i video senza sottotitoli.
+4. **Pronto.**
 
 Poi scegli **TikTok** o **YouTube** e scrivi solo il nome utente, che resta anche se cambi social. Oppure scegli **Link** e incolla il link di un video qualsiasi. I video del creator compaiono in una griglia, con quello selezionato a destra. Premi **Skill-ize**, leggi la scheda e poi **Learn this skill**. La skill finisce in `~/.claude/skills/`, e Claude Code la usa dalla sessione successiva.
 
@@ -119,7 +124,7 @@ TAVIS trova da solo quello che hai già. La configurazione e `tavis doctor` most
 | `lmstudio` | gratis, offline | [LM Studio](https://lmstudio.ai) con il server locale acceso | stesso secondo passaggio di Ollama |
 | `none` | gratis | niente | estrae le frasi che sembrano passi e **dichiara** che nessun modello ha letto il video |
 
-Per ogni cervello via API il modello si sceglie con `TAVIS_<NOME>_MODEL` (per esempio `TAVIS_DEEPSEEK_MODEL`). Senza, TAVIS chiede al fornitore quali modelli esistono e ne sceglie uno da chat, così un modello rinominato non rompe niente. Le chiavi si leggono dall'ambiente e non vengono mai salvate.
+Per ogni cervello via API il modello si sceglie con `TAVIS_<NOME>_MODEL` (per esempio `TAVIS_DEEPSEEK_MODEL`). Senza, TAVIS chiede al fornitore quali modelli esistono e ne sceglie uno da chat, così un modello rinominato non rompe niente. Le chiavi incollate nella configurazione restano solo su questo computer, in `~/.tavis/keys.json`, e si tolgono con un clic. Una chiave impostata nell'ambiente vince sempre.
 
 ### Trascrizione: prima i sottotitoli, poi il motore che scegli tu
 

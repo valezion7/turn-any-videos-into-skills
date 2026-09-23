@@ -3,6 +3,7 @@
 Only this machine can reach it, and every API call must carry a token that is printed into
 the page at start-up, so another website open in your browser cannot drive it."""
 import json
+import os
 import secrets
 import threading
 import traceback
@@ -11,9 +12,24 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import __version__, brain, cancel, card, learn, source, transcribe
+from . import __version__, brain, cancel, card, keys, learn, source, transcribe
 
-TOKEN = secrets.token_urlsafe(24)
+def _token():
+    """One token per install, kept across restarts, so a page left open keeps working after tavis restarts."""
+    f = source.HOME / "ui-token"
+    try:
+        t = f.read_text(encoding="utf-8").strip()
+        if t:
+            return t
+    except OSError:
+        pass
+    f.parent.mkdir(parents=True, exist_ok=True)
+    t = secrets.token_urlsafe(24)
+    f.write_text(t, encoding="utf-8")
+    return t
+
+
+TOKEN = _token()
 JOBS = {}
 LOGIN = {"state": "idle", "message": ""}
 PAGE = (Path(__file__).parent / "ui.html").read_text(encoding="utf-8")
@@ -57,10 +73,51 @@ SETUP = source.HOME / "setup.json"
 STARTER_MODEL = "qwen3:8b"  # ~5 GB, runs on most machines with 16 GB of RAM
 
 
+SIGN_IN = {"claude-code": ("claude", "Claude Code: if it asks, pick your login method and follow the browser."),
+           "codex": ("codex login", "Codex: a browser page opens, sign in with your ChatGPT account."),
+           "gemini": ("gemini", "Gemini CLI: choose 'Login with Google' and follow the browser.")}
+
+
+def open_terminal(command, title="TAVIS sign-in"):
+    """A real terminal window running the tool's own sign-in, because only the tool can log itself in."""
+    import shutil
+    import subprocess
+    import sys
+    if os.name == "nt":
+        subprocess.Popen(["cmd", "/c", "start", title, "cmd", "/k", command])
+    elif sys.platform == "darwin":
+        subprocess.Popen(["osascript", "-e", f'tell application "Terminal" to do script "{command}"'])
+    else:
+        term = next((t for t in ("x-terminal-emulator", "gnome-terminal", "konsole", "xterm") if shutil.which(t)), None)
+        if not term:
+            raise RuntimeError(f"Open a terminal and run: {command}")
+        subprocess.Popen([term, "-e", command] if term != "gnome-terminal" else [term, "--", "bash", "-lc", command])
+
+
+def test_brain(name, model=None):
+    """Ask the brain one tiny question: proves it is installed, signed in and answering."""
+    import time
+    thinker = brain.get(name, model)
+    if name == "none":
+        return {"ok": True, "answer": "No AI needed.", "seconds": 0}
+    t0 = time.time()
+    answer = thinker.complete("Reply with exactly one word: OK")
+    return {"ok": "ok" in answer.lower(), "answer": answer.strip()[:200], "seconds": round(time.time() - t0, 1),
+            "model": getattr(thinker, "model", None)}
+
+
+def _setup():
+    try:
+        return json.loads(SETUP.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
 def status():
     import shutil
     return {"version": __version__, "brains": brain.status(), "ollama_models": brain.Ollama.models(),
-            "setup_done": SETUP.exists(), "starter_model": STARTER_MODEL,
+            "setup_done": SETUP.exists(), "starter_model": STARTER_MODEL, "keys": keys.masked(),
+            "show_setup": _setup().get("show_at_start", True),
             "installed": {"claude": bool(shutil.which("claude")), "ollama": bool(shutil.which("ollama")),
                           "ollama_running": brain.Ollama.running()},
             "logged_in": source.logged_in(), "login": LOGIN, "whisper": transcribe.whisper_available(),
@@ -151,8 +208,28 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"job": _job(work)})
             if path == "/api/setup":
                 SETUP.parent.mkdir(parents=True, exist_ok=True)
-                SETUP.write_text(json.dumps({"done": True, "brain": b.get("brain")}), encoding="utf-8")
+                SETUP.write_text(json.dumps({"done": True, "brain": b.get("brain"),
+                                             "show_at_start": bool(b.get("show_at_start", True))}), encoding="utf-8")
                 return self._send(200, {"ok": True})
+            if path == "/api/keys":
+                try:
+                    keys.save(b.get("name", ""), b.get("value", ""))
+                except ValueError as e:
+                    return self._send(400, {"error": str(e)})
+                return self._send(200, {"keys": keys.masked()})
+            if path == "/api/test":
+                name, model = b.get("brain", "claude-code"), b.get("model") or None
+                return self._send(200, {"job": _job(lambda log, job: (log("asking a one-word question"), test_brain(name, model))[1])})
+            if path == "/api/signin":
+                tool = b.get("tool", "")
+                if tool not in SIGN_IN:
+                    return self._send(400, {"error": "unknown tool"})
+                try:
+                    open_terminal(SIGN_IN[tool][0])
+                except (OSError, RuntimeError) as e:
+                    return self._send(200, {"message": str(e)})
+                return self._send(200, {"message": "A terminal window opened. " + SIGN_IN[tool][1] +
+                                                   " When you are done, close it and press Test."})
             if path == "/api/pull":
                 model = b.get("model") or STARTER_MODEL
                 return self._send(200, {"job": _job(lambda log, job: (brain.Ollama.pull(model, log), {"model": model})[1])})
