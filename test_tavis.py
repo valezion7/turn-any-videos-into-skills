@@ -120,8 +120,11 @@ def test_skill_text_and_ai_edit():
 
         def complete(self, prompt):
             assert "<change>\nshorter\n</change>" in prompt
-            return "```markdown\n" + good + "\n```"
-    assert card.ai_edit(Fake(), good, "shorter").startswith("---\nname: a")
+            return "```markdown\n" + good + " shorter\n```\n" + card.REASONING_MARK + "\n- cut the intro"
+    out = card.ai_edit(Fake(), good, "shorter")
+    assert out["text"].startswith("---\nname: a") and out["text"].strip().endswith("body shorter"), out
+    assert out["reasoning"] == "- cut the intro", out
+    assert out["diff"]["added"] == 1 and out["diff"]["removed"] == 1, out["diff"]
 
 
 def test_openai_compatible_model_pick():

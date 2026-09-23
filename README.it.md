@@ -56,7 +56,7 @@ tavis learn "https://www.youtube.com/watch?v=bjdBVZa66oU" --lang it
 
 ### Modificare una skill dopo
 
-Le skill scritte da TAVIS sono elencate in **Your skills**. Aprendone una puoi modificare il `SKILL.md` a mano, oppure chiedere al cervello che stai usando di cambiarla: "accorciala", "aggiungi un esempio per il mio lavoro", "togli tutto ciò che promuove un prodotto". Vedi prima la versione proposta, poi scegli se usarla e salvare. TAVIS rifiuta di salvare un file che Claude Code non riuscirebbe più a caricare.
+Le skill scritte da TAVIS sono elencate in **Your skills**. Aprendone una puoi modificare il `SKILL.md` a mano, oppure chiedere al cervello che stai usando di cambiarla: "accorciala", "aggiungi un esempio per il mio lavoro", "togli tutto ciò che promuove un prodotto". Ogni risposta si apre in una nuova scheda accanto alla versione salvata, come le schede del browser: passi dall'una all'altra, chiudi quelle che non ti servono, continui a chiedere partendo da quella che vuoi. **Show reasoning** spiega cosa ha cambiato il cervello e perché, con le righe tolte e aggiunte. Salvi la scheda che ti piace. TAVIS rifiuta di salvare un file che Claude Code non riuscirebbe più a caricare.
 
 ## Come funziona
 

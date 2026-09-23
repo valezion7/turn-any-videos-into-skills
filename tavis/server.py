@@ -163,7 +163,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not instruction:
                     return self._send(400, {"error": "Say what to change."})
                 return self._send(200, {"job": _job(lambda log, job: (log(f"{thinker.label} is editing the skill"),
-                                                                     {"text": card.ai_edit(thinker, text, instruction)})[1])})
+                                                                     card.ai_edit(thinker, text, instruction))[1])})
             if path == "/api/profile":
                 card.save_profile(b.get("text", ""))
                 return self._send(200, {"ok": True})

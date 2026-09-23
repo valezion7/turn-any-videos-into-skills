@@ -352,8 +352,15 @@ def history_key(meta):
     return slugify(f"{meta.get('platform')}-{meta.get('id')}", "video")
 
 
-EDIT_PROMPT = """You are editing a Claude skill (a SKILL.md file). Apply the change the person asks for and
-return the WHOLE file, nothing else: no comments, no code fences.
+REASONING_MARK = "===TAVIS-REASONING==="
+
+EDIT_PROMPT = """You are editing a Claude skill (a SKILL.md file). Apply the change the person asks for.
+
+Answer in two parts and nothing else, no code fences:
+1. the WHOLE new file;
+2. a line that says exactly """ + REASONING_MARK + """, then 2 to 6 short bullet points for the person:
+   what you changed, and why. Mention anything you chose not to do. Write these points in the
+   language of the change request.
 
 Keep the file valid: it starts with the frontmatter block (--- / name: ... / description: "Use when ..." / ---).
 Keep "name" unless the person asks to rename it. The description must stay one English sentence starting
@@ -414,8 +421,18 @@ def ai_edit(brain, text, instruction):
     if brain.name == "none":
         raise ValueError("Editing with AI needs a brain. Pick one in Setup, or edit the text directly.")
     answer = brain.complete(EDIT_PROMPT.format(instruction=instruction.strip()[:4000], text=text))
-    answer = re.sub(r"^```(?:markdown|md)?\s*\n|\n```\s*$", "", answer.strip())
-    return check_skill_text(answer)
+    body, _, reasoning = answer.partition(REASONING_MARK)
+    body = re.sub(r"^```(?:markdown|md)?\s*\n|\n```\s*$", "", body.strip())
+    return {"text": check_skill_text(body), "reasoning": reasoning.strip() or "The brain did not explain its changes.",
+            "diff": diff_summary(text, body)}
+
+
+def diff_summary(old, new):
+    """What changed, line by line, for the "Show reasoning" panel."""
+    import difflib
+    lines = list(difflib.unified_diff(old.strip().splitlines(), new.strip().splitlines(), lineterm="", n=1))[2:]
+    return {"removed": sum(1 for l in lines if l.startswith("-")), "added": sum(1 for l in lines if l.startswith("+")),
+            "lines": lines[:400]}
 
 
 def save_history(meta, card, status="pending"):

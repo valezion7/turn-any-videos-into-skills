@@ -57,7 +57,7 @@ tavis learn "https://www.youtube.com/watch?v=bjdBVZa66oU" --lang en
 
 ### Editing a skill later
 
-Every skill TAVIS wrote is listed under **Your skills**. Open one and you can edit the `SKILL.md` directly, or ask the brain you are using to change it: "make it shorter", "add an example for my work", "remove anything that promotes a product". You see the proposed version first, then choose whether to use it and save. TAVIS refuses to save a file that Claude Code could no longer load.
+Every skill TAVIS wrote is listed under **Your skills**. Open one and you can edit the `SKILL.md` directly, or ask the brain you are using to change it: "make it shorter", "add an example for my work", "remove anything that promotes a product". Every answer opens as a new tab next to the saved version, like browser tabs: switch between them, close the ones you do not want, keep asking from any of them. **Show reasoning** tells you what the brain changed and why, with the lines it removed and added. Save the tab you like. TAVIS refuses to save a file that Claude Code could no longer load.
 
 ## How it works
 
