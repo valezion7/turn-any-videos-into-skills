@@ -1,6 +1,6 @@
 # TAVIS: Turn Any VIdeo into Skills
 
-Gli dai un video che insegna qualcosa. Ne esce una scheda da leggere e, se la approvi, una skill che Claude sa usare.
+Gli dai un video che insegna qualcosa. Ne esce una scheda da leggere e, se la approvi, una skill che la tua AI sa usare.
 
 ```
     .-"""-.-"""-.      ████████  █████  ██    ██ ██ ███████
@@ -65,6 +65,14 @@ Per usare quello che fa TAVIS non serve Claude Code. Ogni scheda e ogni skill ha
 - **Download for Claude app (.zip)**: si carica nell'app di Claude (web o desktop) da Impostazioni > Funzionalità > Skill, con l'esecuzione del codice attiva (piani Pro, Max, Team ed Enterprise). TAVIS ti avvisa se il nome o la descrizione superano i limiti dell'app.
 - **Download SKILL.md**: il file così com'è, per Claude Code su un altro computer o da condividere.
 - **Copy for ChatGPT / other apps**: lo stesso metodo come istruzioni in testo semplice, da incollare in un Progetto o in un GPT personalizzato di ChatGPT, in un Gem di Gemini o in qualsiasi assistente che accetta istruzioni personalizzate.
+
+### Muoversi, fermarsi, fare pulizia
+
+- **Stop** ferma davvero un lavoro in corso: si fermano lo scaricamento, la trascrizione e l'AI, e non viene salvato niente.
+- **← Back** in ogni schermata, e funzionano anche il tasto indietro del browser ed **Esc**.
+- **Elimina** una scheda con la × in Recent, oppure **Clear all**. **Uninstall skill** nell'editor toglie una skill scritta da TAVIS (quelle che non ha scritto lui non le tocca mai). Ogni cancellazione chiede conferma, dentro la pagina.
+- **Fill it from my AI memory** (nella configurazione e in "About you"): legge quello che Claude Code, Codex o Gemini CLI sanno di te su questo computer (`CLAUDE.md`, le memorie "user" di Claude Code, `AGENTS.md`, `GEMINI.md`). Salta ogni riga che somiglia a una chiave o a un dato personale (IBAN, codice fiscale, email, telefono) e scrive un profilo breve, che correggi prima che venga salvato.
+- Tastiera e screen reader: si arriva a tutto con Tab, le schede dell'editor si spostano con le frecce, la finestra di configurazione tiene il focus e si chiude con Esc, c'è il link "salta al contenuto" e i messaggi di stato vengono annunciati.
 
 ## Come funziona
 

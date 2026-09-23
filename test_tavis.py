@@ -142,6 +142,50 @@ def test_export_for_apps():
     assert other.startswith("Apply the following method whenever a client pushes back on price.") and "---" not in other
 
 
+def test_stop_kills_running_work():
+    import sys
+    import threading
+    import time
+    from tavis import cancel
+    result = {}
+
+    def job():
+        cancel.bind("job-1")
+        t0 = time.time()
+        try:
+            cancel.run([sys.executable, "-c", "import time; time.sleep(30)"], text=True)
+            result["outcome"] = "finished"
+        except cancel.Cancelled:
+            result["outcome"] = "stopped"
+        result["seconds"] = time.time() - t0
+
+    t = threading.Thread(target=job)
+    t.start()
+    time.sleep(1.5)
+    cancel.cancel("job-1")
+    t.join(10)
+    assert result.get("outcome") == "stopped" and result["seconds"] < 10, result
+
+
+def test_uninstall_only_touches_tavis_skills():
+    meta = {"url": "u", "creator": "c", "id": "9", "platform": "p", "title": "t"}
+    c = card.normalize({"skill": {"name": "mine", "description": "Use when x", "body": "b"}})
+    card.install_skill(c, meta)
+    card.save_history(meta, c, "approved")
+    card.uninstall_skill("mine")
+    assert not card.skill_path("mine").exists()
+    assert card.load_history(card.history_key(meta))["status"] == "pending"
+    other = card.skill_path("someone-else")
+    other.parent.mkdir(parents=True)
+    other.write_text("---\nname: someone-else\ndescription: x\n---\nbody", encoding="utf-8")
+    try:
+        card.uninstall_skill("someone-else")
+        raise AssertionError("removed a skill TAVIS did not write")
+    except PermissionError:
+        pass
+    assert other.exists()
+
+
 def test_openai_compatible_model_pick():
     from tavis import brain
     p = brain.get("deepseek")

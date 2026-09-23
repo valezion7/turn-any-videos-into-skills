@@ -10,7 +10,7 @@
 <style>
 :root{
   --ink:#0B0A09; --panel:#12100E; --field:#181512; --line:rgba(255,240,225,.09); --line2:rgba(255,240,225,.16);
-  --paper:#F4F0EA; --grey:#A39B93; --dim:#6F6861; --ember:#FF6A00; --ember2:#B53700;
+  --paper:#F4F0EA; --grey:#A39B93; --dim:#8F877F; --ember:#FF6A00; --ember2:#B53700;
   --good:#4CBF9C; --warn:#D8AB52; --bad:#E4795F;
   --display:"Space Grotesk",system-ui,sans-serif; --body:"DM Sans",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
 }
@@ -21,6 +21,7 @@ body{margin:0;background:var(--ink);color:var(--paper);font:15px/1.6 var(--body)
 a{color:var(--ember)}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+[tabindex="-1"]:focus{outline:none}  /* headings get focus so screen readers announce the new view */
 
 .top{display:flex;align-items:center;gap:22px;padding:22px 28px;border-bottom:1px solid var(--line)}
 .brain{font:600 9px/1.05 var(--mono);color:var(--ember);margin:0;white-space:pre}
@@ -201,6 +202,27 @@ a.t:hover{color:var(--ember)}
 *{scrollbar-color:var(--ember) transparent}
 .exportbox{margin-top:6px;padding:14px 16px;border:1px dashed var(--line2);border-radius:8px;display:flex;flex-direction:column;gap:10px}
 .exportbox .label{margin:0}
+.skip{position:absolute;left:12px;top:-60px;z-index:20;background:var(--ember);color:#fff;padding:10px 14px;border-radius:6px;font-weight:600}
+.skip:focus{top:12px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:30;background:var(--field);border:1px solid var(--line2);border-left:3px solid var(--ember);border-radius:8px;padding:12px 18px;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:min(560px,calc(100vw - 32px))}
+.navbar{display:flex;gap:10px;align-items:center;margin:-6px 0 16px}
+.back{padding:7px 12px;font-size:.84rem}
+.danger{border-color:rgba(228,121,95,.55);color:var(--bad)}
+.danger:hover{background:var(--bad);color:#fff;border-color:var(--bad)}
+.ask{font-size:.86rem;margin-right:6px}
+.slot{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+.hrow{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line)}
+.hrow .hmain{flex:1;min-width:0;border-bottom:0!important}
+.hrow .edit{margin-left:0;cursor:pointer;background:none;padding:5px 9px;border:1px solid rgba(255,106,0,.45);border-radius:99px}
+.hrow .edit:hover,.hrow .edit:focus-visible{background:var(--ember);color:#fff}
+.hrow .xbtn{padding:0;border:0}
+.xbtn{background:none;border:0;color:var(--dim);font-size:1.05rem;width:26px;height:26px;border-radius:50%;cursor:pointer;flex:none}
+.xbtn:hover,.xbtn:focus-visible{background:var(--line2);color:var(--paper)}
+.labelrow{display:flex;justify-content:space-between;align-items:center;margin:0 0 12px}
+.labelrow .label{margin:0}
+.linkbtn{background:none;border:0;color:var(--grey);font-size:.78rem;cursor:pointer;text-decoration:underline;padding:2px}
+.linkbtn:hover{color:var(--paper)}
+.wclose{float:right;margin:-8px -8px 0 0}
 .none{color:var(--dim)}
 .added{font:600 .66rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);background:var(--grey);border-radius:3px;padding:2px 5px;margin-left:4px;vertical-align:1px;white-space:nowrap}
 .skill{display:grid;gap:10px}
@@ -215,6 +237,8 @@ a.t:hover{color:var(--ember)}
 </style>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <header class="top">
 <pre class="brain" aria-hidden="true">    .-"""-.-"""-.
    /  .-.   .-.  \
@@ -224,7 +248,7 @@ a.t:hover{color:var(--ember)}
     '-.._____..-'</pre>
   <div>
     <h1>TAVIS</h1>
-    <p>Turn any video into a skill for Claude · v__VERSION__</p>
+    <p>Turn any video into a skill for your AI · v__VERSION__</p>
   </div>
   <div class="chips">
     <button class="chip" id="chipSetup" type="button">Setup</button>
@@ -235,6 +259,7 @@ a.t:hover{color:var(--ember)}
 
 <div class="wiz" id="wiz" hidden role="dialog" aria-modal="true" aria-labelledby="wTitle">
   <div class="wbox">
+    <button class="xbtn wclose" type="button" id="wClose" aria-label="Close setup" title="Close (Esc)">×</button>
     <div class="wsteps" id="wSteps"><i></i><i></i><i></i><i></i></div>
     <div id="wBody"></div>
     <div class="wnav"><button class="ghost" id="wBack" type="button">Back</button>
@@ -269,8 +294,10 @@ a.t:hover{color:var(--ember)}
     </div>
     <details style="margin-top:12px">
       <summary>About you (makes the advice specific)</summary>
-      <textarea id="profile" rows="4" placeholder="e.g. I run a 4-person web studio in Italy. Clients are restaurants and small shops. I use Claude Code daily."></textarea>
+      <textarea id="profile" rows="4" placeholder="e.g. I run a 4-person web studio in Italy. Clients are restaurants and small shops. I use AI tools every day."></textarea>
       <p class="hint">Saved on this computer only (~/.tavis/profile.txt) and sent to the brain you pick.</p>
+      <button class="ghost mini" type="button" id="railMem">Fill it from my AI memory</button>
+      <p class="hint" id="railMemMsg" role="status"></p>
     </details>
   </section>
 
@@ -282,17 +309,18 @@ a.t:hover{color:var(--ember)}
   </section>
 
   <section>
-    <p class="label">Recent</p>
+    <div class="labelrow"><p class="label">Recent</p><button class="linkbtn" id="clearHist" type="button">Clear all</button></div>
+    <span class="slot" id="histSlot"></span>
     <div class="hist" id="hist"><p class="hint">Nothing yet.</p></div>
   </section>
 </aside>
 
-<main class="main" id="main">
+<main class="main" id="main" tabindex="-1">
   <div class="empty">
-    <h2>A video teaches something. TAVIS turns it into a skill Claude can use.</h2>
+    <h2>A video teaches something. TAVIS turns it into a skill your AI can use.</h2>
     <p>Nothing is written until you read the card and approve it. The card tells you what the video
     teaches, how it applies to your work, and what to be careful about. Sponsored tools, risky
-    advice and outdated tricks get flagged before they reach Claude.</p>
+    advice and outdated tricks get flagged before they reach your AI.</p>
     <div class="flow">
       <div><b>VIDEO</b>link or creator</div>
       <div><b>TRANSCRIPT</b>subtitles or Whisper</div>
@@ -373,6 +401,7 @@ $("#lang").onchange = e => localSet("lang", e.target.value);
 $("#transcriber").onchange = e => { localSet("transcriber", e.target.value); $("#sizeWrap").hidden = e.target.value !== "whisper"; };
 $("#wsize").onchange = e => localSet("wsize", e.target.value);
 $("#profile").onchange = e => api("/api/profile", {text: e.target.value});
+$("#railMem").onclick = () => fillFromMemory($("#profile"), $("#railMemMsg"));
 $("#chipLogin").onclick = async () => {
   if (st && st.logged_in) { await api("/api/logout", {}); }
   else { await api("/api/login", {}); }
@@ -400,6 +429,70 @@ document.querySelectorAll("[role=tab]").forEach(t => t.onclick = () => { setMode
 setMode(localGet("mode") || "tiktok");
 $("#src").value = localGet("who") || "";
 
+// ---- navigation, stopping, cleaning up, keyboard ----
+// Views go into the browser history, so the Back button, the browser's back and Esc all work.
+const HOME_HTML = $("#main").innerHTML;
+let lastBrowse = null, runningJob = null;
+function focusMain() { const h = $("#main").querySelector("h2, h1, [data-focus]"); if (h) { h.setAttribute("tabindex", "-1"); h.focus({preventScroll: true}); } }
+function backBar(label) {
+  return `<div class="navbar"><button class="ghost back" type="button" data-back>← ${esc(label || "Back")}</button></div>`;
+}
+function wireBack() { $("#main").querySelectorAll("[data-back]").forEach(b => b.onclick = goBack); }
+function flash(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 4000); }
+function show(view, arg, push = true) {
+  if (push) history.pushState({view, arg}, "");
+  if (view === "browse" && lastBrowse) renderBrowse(lastBrowse.videos, lastBrowse.who);
+  else if (view === "card" && arg) return openCard(arg).catch(() => show("home", null, false));
+  else if (view === "skill" && arg) return openSkill(arg).catch(() => show("home", null, false));
+  else $("#main").innerHTML = HOME_HTML;
+  wireBack(); focusMain();
+}
+function goBack() {
+  if (runningJob) return stopJob();
+  if (history.state && history.state.view && history.state.view !== "home") history.back(); else show("home");
+}
+window.addEventListener("popstate", e => { const s = e.state || {view: "home"}; show(s.view, s.arg, false); });
+history.replaceState({view: "home"}, "");
+async function stopJob() {
+  const j = runningJob; if (!j) return;
+  document.querySelectorAll("[data-stop]").forEach(b => { b.disabled = true; b.textContent = "Stopping…"; });
+  try { await api("/api/cancel", {job: j}); } catch {}
+}
+const stopped = e => /^Stopped/.test(e && e.message || "");
+function backToWhereIWas(msg) { const s = history.state || {view: "home"}; show(s.view, s.arg, false); if (msg) flash(msg); }
+async function openCard(key) {
+  const r = await api("/api/card?key=" + encodeURIComponent(key));
+  current = {key: r.key, meta: r.meta, card: r.card, status: r.status}; renderCard();
+}
+const openCardNav = key => { history.pushState({view: "card", arg: key}, ""); return openCard(key); };
+const openSkillNav = name => { history.pushState({view: "skill", arg: name}, ""); return openSkill(name); };
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!$("#wiz").hidden) { closeWizard(); return; }
+  const typing = /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "");
+  if (!typing) goBack();
+});
+// "are you sure?" inside the page, in a slot next to the button, never a browser pop-up
+function confirmInline(slot, question, yesLabel, onYes) {
+  slot.innerHTML = `<span class="ask">${esc(question)}</span>
+    <button class="ghost mini danger" type="button" data-yes>${esc(yesLabel)}</button>
+    <button class="ghost mini" type="button" data-no>Cancel</button>`;
+  slot.setAttribute("role", "alert");
+  slot.querySelector("[data-no]").onclick = () => { slot.innerHTML = ""; };
+  slot.querySelector("[data-yes]").onclick = async () => { slot.innerHTML = ""; await onYes(); };
+  slot.querySelector("[data-no]").focus();
+}
+async function fillFromMemory(textarea, msg) {
+  const brainName = (typeof wBrain === "string" && wBrain) || $("#brain").value;
+  try {
+    const {sources} = await api("/api/profile/sources", {});
+    if (!sources.length) { msg.textContent = "No assistant memory on this computer. Two lines written by you are enough."; return; }
+    msg.textContent = `Reading ${sources.length} file${sources.length > 1 ? "s" : ""} (${sources.map(s => s.split(/[\\/]/).pop()).join(", ")}). Lines that look like keys or personal data are skipped…`;
+    const j = await waitJob((await api("/api/profile/suggest", {brain: brainName, lang: $("#lang").value})).job);
+    textarea.value = j.text; textarea.dispatchEvent(new Event("change"));
+    msg.textContent = "Done. Read it and change anything before you go on: only this text is saved.";
+  } catch (e) { msg.textContent = e.message; }
+}
 // ---- browsing: the creator's videos as a grid on the right, with a player to watch before learning ----
 function embedUrl(url) {
   // TikTok refuses to stream its videos inside other pages, so TikTok gets a cover and a link, not a player
@@ -429,7 +522,7 @@ function showPlayer(v) {
 }
 function renderBrowse(videos, who) {
   const c = videos[0] || {};
-  $("#main").innerHTML = `<div class="browse">
+  $("#main").innerHTML = backBar("Home") + `<div class="browse">
     <section><div class="who" style="margin-bottom:14px">${avatar(c.creator || who, c.avatar)}
       <span><b style="color:var(--paper)">${esc(c.creator || who)}</b> · ${videos.length} video${videos.length === 1 ? "" : "s"} · pick one to watch it</span></div>
       <div class="vgrid" id="vgrid"></div></section>
@@ -457,16 +550,22 @@ $("#srcForm").onsubmit = async e => {
   if (!isLink(q)) localSet("who", q);
   if (mode === "link" || isLink(q)) {
     if (!isLink(q)) { $("#srcHint").textContent = "That is not a link. Paste one that starts with https://"; return; }
-    renderBrowse([{url: q, title: q, creator: ""}], ""); return;
+    lastBrowse = {videos: [{url: q, title: q, creator: ""}], who: ""}; show("browse"); return;
   }
-  $("#main").innerHTML = `<div class="working"><div><p class="label">Looking for videos</p><div class="bar"><i></i></div></div></div>`;
+  $("#main").innerHTML = `<div class="working"><div><p class="label" data-focus>Looking for videos</p><div class="bar"><i></i></div>
+    <button class="ghost" type="button" data-stop>Stop</button></div></div>`;
+  $("#main").querySelector("[data-stop]").onclick = stopJob; focusMain();
   $("#srcBtn").disabled = true;
   try {
-    const j = await waitJob((await api("/api/list", {query: q.replace(/^@/, ""), platform: mode})).job);
-    if (!j.videos.length) { $("#main").innerHTML = `<div class="err">No videos found for “${esc(q)}”.</div>`; return; }
-    renderBrowse(j.videos, q);
-  } catch (err) { $("#main").innerHTML = `<p class="label">Something stopped</p><div class="err">${esc(err.message)}</div>`; }
-  finally { $("#srcBtn").disabled = false; }
+    const job = await api("/api/list", {query: q.replace(/^@/, ""), platform: mode}); runningJob = job.job;
+    const j = await waitJob(job.job);
+    if (!j.videos.length) { $("#main").innerHTML = backBar("Home") + `<div class="err">No videos found for “${esc(q)}”.</div>`; wireBack(); return; }
+    lastBrowse = {videos: j.videos, who: q}; runningJob = null; show("browse");
+  } catch (err) {
+    if (stopped(err)) backToWhereIWas("Stopped.");
+    else { $("#main").innerHTML = backBar("Home") + `<p class="label">Something stopped</p><div class="err">${esc(err.message)}</div>`; wireBack(); }
+  }
+  finally { $("#srcBtn").disabled = false; runningJob = null; }
 };
 
 async function startLearning() {
@@ -481,8 +580,11 @@ async function startLearning() {
   |   '-'   '-'   |
    \\  '._____.'  /
     '-.._____..-'</pre>
-    <div><p class="label">Working</p><div id="pv"></div><div class="bar"><i></i></div>
-    <div class="progress" id="prog" aria-live="polite"></div></div></div>`;
+    <div><p class="label" data-focus>Working</p><div id="pv"></div><div class="bar"><i></i></div>
+    <div class="progress" id="prog" aria-live="polite"></div>
+    <div class="actions"><button class="ghost" type="button" data-stop>Stop</button>
+    <span class="hint">Stop ends the download, the transcription and the AI. Nothing is saved.</span></div></div></div>`;
+  main.querySelector("[data-stop]").onclick = stopJob; focusMain();
   const started = Date.now();
   let shown = false;
   const tick = (log, job) => {
@@ -496,12 +598,16 @@ async function startLearning() {
   try {
     const job = await api("/api/learn", {url: chosen, brain: $("#brain").value, lang: $("#lang").value,
       transcriber: $("#transcriber").value, whisper_size: $("#transcriber").value === "whisper" ? $("#wsize").value : null, model: $("#brain").value === "ollama" ? $("#model").value : null});
+    runningJob = job.job;
     const j = await waitJob(job.job, tick);
+    runningJob = null;
     current = {key: j.key, meta: j.meta, card: j.card, status: "pending"};
+    history.pushState({view: "card", arg: j.key}, "");
     renderCard(); loadHistory();
   } catch (err) {
-    main.innerHTML = `<p class="label">Something stopped</p><div class="err">${esc(err.message)}</div>`;
-  } finally { btn.disabled = false; btn.textContent = "Skill-ize"; }
+    if (stopped(err)) backToWhereIWas("Stopped. Nothing was saved.");
+    else { main.innerHTML = backBar() + `<p class="label">Something stopped</p><div class="err">${esc(err.message)}</div>`; wireBack(); }
+  } finally { runningJob = null; btn.disabled = false; btn.textContent = "Skill-ize"; }
 }
 $("#learnBtn").onclick = startLearning;
 
@@ -521,7 +627,7 @@ function renderCard() {
   const warns = c.warnings.length ? c.warnings.map(w =>
     `<div class="warn"><span class="k ${esc(w.kind)}">${esc(w.kind.replaceAll("_", " "))}</span><span>${mark(w.text)}</span></div>`).join("")
     : `<p class="none">No warnings found. That is the brain's reading, not a guarantee.</p>`;
-  $("#main").innerHTML = `<article class="card">
+  $("#main").innerHTML = backBar() + `<article class="card">
     <div class="cardhead">${img(m.thumbnail, "thumb" + (isWide(m.url) ? " wide" : ""))}<div>
     <div class="who">${avatar(m.creator)}<span>${esc(m.creator)} · ${esc(m.platform)} · ${esc(m.upload_date || "date unknown")} · ${clock(m.duration)}</span></div>
     <h2>${esc(m.title)}</h2>
@@ -543,14 +649,16 @@ function renderCard() {
 
     <section class="sec"><h3>The skill</h3><div class="skill">
       <label>Name<input type="text" id="skName" value="${esc(sk.name)}"></label>
-      <label>Description: decides when Claude uses it<input type="text" id="skDesc" value="${esc(sk.description)}"></label>
+      <label>Description: decides when the AI uses it<input type="text" id="skDesc" value="${esc(sk.description)}"></label>
       <label>Body<textarea id="skBody">${esc(sk.body)}</textarea></label>
       <div class="path" id="skPath"></div>
     </div></section>
     <div class="actions" id="actions">
       <button class="go" id="approve" type="button">Learn this skill</button>
       <button class="ghost" id="reject" type="button">Reject</button>
-      <span class="hint" id="status">${current.status === "approved" ? "Already approved once." : current.status === "rejected" ? "Rejected earlier." : ""}</span>
+      <button class="ghost danger" id="discard" type="button">Delete card</button>
+      <span class="slot" id="cardSlot"></span>
+      <span class="hint" id="status" role="status">${current.status === "approved" ? "Already approved once." : current.status === "rejected" ? "Rejected earlier." : ""}</span>
     </div>
     <div id="cardExport"></div>
   </article>`;
@@ -564,7 +672,7 @@ function renderCard() {
       $("#actions").innerHTML = `<div class="ok-box">Installed: <span class="path">${esc(r.path)}</span><br>
         Claude Code picks it up in new sessions. Test it by asking for something its description covers.
         <br><button class="ghost mini" id="editNow" type="button" style="margin-top:10px">Edit this skill</button></div>`;
-      $("#editNow").onclick = () => openSkill(edited().name);
+      $("#editNow").onclick = () => openSkillNav(edited().name);
       loadHistory(); loadSkills();
     } catch (e) {
       if (e.status === 409) {
@@ -576,6 +684,10 @@ function renderCard() {
   $("#cardExport").innerHTML = exportBox();
   wireExport($("#cardExport"), () => ({key: current.key, skill: edited()}));
   $("#approve").onclick = () => approve(false);
+  $("#discard").onclick = () => confirmInline($("#cardSlot"), "Delete this card? Installed skills stay.", "Delete", async () => {
+    await api("/api/history/delete", {key: current.key}); loadHistory(); show("home"); flash("Card deleted.");
+  });
+  wireBack(); focusMain();
   $("#reject").onclick = async () => { await api("/api/reject", {key: current.key}); $("#status").textContent = "Rejected. Nothing was written."; loadHistory(); };
 }
 
@@ -585,12 +697,11 @@ async function loadSkills() {
   const box = $("#skills");
   box.innerHTML = items.length ? "" : '<p class="hint">Approved skills show up here, ready to edit.</p>';
   items.forEach(s => {
-    const b = document.createElement("button"); b.type = "button";
-    b.innerHTML = `<span class="s approved">skill</span><span class="ht">${esc(s.name)}</span><span class="edit" aria-hidden="true">✎ Edit</span>`;
-    b.setAttribute("aria-label", `Edit ${s.name}`);
-    b.title = s.description;
-    b.onclick = () => openSkill(s.name);
-    box.appendChild(b);
+    const row = document.createElement("div"); row.className = "hrow";
+    row.innerHTML = `<button class="hmain" type="button" title="${esc(s.description)}"><span class="s approved">skill</span><span class="ht">${esc(s.name)}</span></button>
+      <button class="edit" type="button" aria-label="Edit ${esc(s.name)}">✎ Edit</button>`;
+    row.querySelectorAll("button").forEach(b => b.onclick = () => openSkillNav(s.name));
+    box.appendChild(row);
   });
 }
 // ---- export: for people who use the Claude app, ChatGPT or others instead of the command line ----
@@ -643,8 +754,10 @@ async function openSkill(name) {
         tabs: [{id: 0, title: "Saved", text: r.text, saved: r.text, fixed: true}]};
   if (!st) await loadStatus();
   const label = (st.brains[$("#brain").value] || {}).label || "the AI";
-  $("#main").innerHTML = `<article class="editor">
-    <div><p class="label">Skill</p><h2 class="ename">${esc(r.name)}</h2><div class="path">${esc(r.path)}</div></div>
+  $("#main").innerHTML = backBar() + `<article class="editor">
+    <div><p class="label">Skill</p><h2 class="ename">${esc(r.name)}</h2><div class="path">${esc(r.path)}</div>
+      <div class="actions" style="padding:10px 0 0"><button class="ghost danger mini" id="edUninstall" type="button">Uninstall skill</button>
+      <span class="slot" id="edSlot"></span></div></div>
     <div class="ecols">
       <section class="tabbed">
         <div class="tabbar" role="tablist" id="edTabs"></div>
@@ -664,6 +777,11 @@ async function openSkill(name) {
   $("#edText").oninput = () => { cur().text = $("#edText").value; drawTabs(); };
   document.querySelectorAll(".aipanel .chips button").forEach(c => c.onclick = () => { $("#edAsk").value = c.textContent; $("#edAsk").focus(); });
   $("#edGo").onclick = askAI;
+  $("#edUninstall").onclick = () => confirmInline($("#edSlot"), `Remove ${r.name} from ${r.path.replace(/[\\/]SKILL\.md$/, "")}?`, "Uninstall", async () => {
+    try { await api("/api/skill/delete", {name: r.name}); loadSkills(); loadHistory(); show("home"); flash(`${r.name} uninstalled.`); }
+    catch (e) { flash(e.message); }
+  });
+  wireBack();
   $("#edExport").innerHTML = exportBox();
   wireExport($("#edExport"), () => ({name: ed.name, text: cur().text}));
   showTab(0);
@@ -678,7 +796,15 @@ function drawTabs() {
   }).join("");
   $("#edTabs").querySelectorAll(".tab").forEach(el => {
     el.onclick = e => { if (!e.target.dataset.close) showTab(+el.dataset.id); };
-    el.onkeydown = e => { if (e.key === "Enter") showTab(+el.dataset.id); };
+    el.onkeydown = e => {
+      const i = ed.tabs.findIndex(t => t.id === +el.dataset.id);
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showTab(+el.dataset.id); }
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        const n = ed.tabs[(i + (e.key === "ArrowRight" ? 1 : ed.tabs.length - 1)) % ed.tabs.length];
+        showTab(n.id); $(`#edTabs [data-id="${n.id}"]`).focus();
+      }
+      if ((e.key === "Delete" || e.key === "Backspace") && !ed.tabs[i].fixed) closeTab(ed.tabs[i].id);
+    };
     el.onauxclick = e => { if (e.button === 1 && !ed.tabs.find(t => t.id === +el.dataset.id).fixed) closeTab(+el.dataset.id); };
   });
   $("#edTabs").querySelectorAll(".tclose").forEach(b => b.onclick = () => closeTab(+b.dataset.close));
@@ -727,36 +853,46 @@ async function askAI() {
   const base = cur(), go = $("#edGo"), out = $("#edOut"), ask = $("#edAsk").value.trim();
   if (!ask) { out.innerHTML = `<p class="hint">Write what to change, or pick one of the suggestions.</p>`; return; }
   go.disabled = true;
-  out.innerHTML = `<div class="bar"><i></i></div><p class="hint">Rewriting ${esc(base.title)}…</p>`;
+  out.innerHTML = `<div class="bar"><i></i></div><p class="hint">Rewriting ${esc(base.title)}… <button class="ghost mini" type="button" data-stop>Stop</button></p>`;
+  out.querySelector("[data-stop]").onclick = stopJob;
   try {
-    const j = await waitJob((await api("/api/skill/ai", {text: base.text, instruction: ask,
-      brain: $("#brain").value, model: $("#brain").value === "ollama" ? $("#model").value : null})).job);
+    const job = await api("/api/skill/ai", {text: base.text, instruction: ask,
+      brain: $("#brain").value, model: $("#brain").value === "ollama" ? $("#model").value : null});
+    runningJob = job.job;
+    const j = await waitJob(job.job);
+    runningJob = null;
     const id = ed.next++;
     ed.tabs.push({id, title: `Proposal ${id}`, text: j.text, reasoning: j.reasoning, diff: j.diff,
                   brain: (st.brains[$("#brain").value] || {}).label || "the AI", asked: ask});
     showTab(id);
     out.innerHTML = `<p class="hint">Opened as <b>Proposal ${id}</b>: “${esc(ask)}”.</p>`;
-  } catch (e) { out.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
-  finally { go.disabled = false; }
+  } catch (e) { out.innerHTML = stopped(e) ? `<p class="hint">Stopped. No new tab.</p>` : `<div class="err">${esc(e.message)}</div>`; }
+  finally { go.disabled = false; runningJob = null; }
 }
 async function loadHistory() {
   const {items} = await api("/api/history");
   $("#hist").innerHTML = items.length ? "" : '<p class="hint">Nothing yet.</p>';
+  $("#clearHist").hidden = !items.length;
   items.forEach(i => {
-    const b = document.createElement("button"); b.type = "button";
+    const row = document.createElement("div"); row.className = "hrow";
     const editable = i.status === "approved";
-    b.innerHTML = `<span class="s ${esc(i.status)}">${esc(i.status)}</span><span class="ht">${esc(i.title)}</span>` +
-      (editable ? `<span class="edit" title="Edit the installed skill">✎ Edit</span>` : "");
-    b.onclick = async e => {
-      if (editable && e.target.classList.contains("edit")) {
-        try { return await openSkill(i.skill); }
-        catch { $("#main").innerHTML = `<div class="err">The skill “${esc(i.skill)}” is no longer installed. Open the card and press Learn this skill again.</div>`; return; }
-      }
-      const r = await api("/api/card?key=" + encodeURIComponent(i.key));
-      current = {key: r.key, meta: r.meta, card: r.card, status: r.status}; renderCard(); };
-    $("#hist").appendChild(b);
+    row.innerHTML = `<button class="hmain" type="button"><span class="s ${esc(i.status)}">${esc(i.status)}</span><span class="ht">${esc(i.title)}</span></button>
+      ${editable ? `<button class="edit" type="button" aria-label="Edit the installed skill ${esc(i.skill)}">✎ Edit</button>` : ""}
+      <button class="xbtn" type="button" aria-label="Delete the card ${esc(i.title)}" title="Delete this card">×</button>`;
+    row.querySelector(".hmain").onclick = () => openCardNav(i.key);
+    if (editable) row.querySelector(".edit").onclick = () => openSkillNav(i.skill).catch(() => {
+      $("#main").innerHTML = backBar() + `<div class="err">The skill “${esc(i.skill)}” is no longer installed. Open the card and press Learn this skill again.</div>`; wireBack(); });
+    row.querySelector(".xbtn").onclick = async () => {
+      await api("/api/history/delete", {key: i.key});
+      if (current && current.key === i.key && history.state && history.state.view === "card") show("home");
+      loadHistory(); flash("Card deleted.");
+    };
+    $("#hist").appendChild(row);
   });
 }
+$("#clearHist").onclick = () => confirmInline($("#histSlot"), "Delete every card in Recent? Installed skills stay.", "Delete all", async () => {
+  const r = await api("/api/history/clear", {}); loadHistory(); show("home"); flash(`${r.removed} cards deleted.`);
+});
 // ---- first-run setup: four short steps, every one can be skipped ----
 let wStep = 0, wBrain = null;
 const GROUPS = {"claude-code": "plan", codex: "plan", gemini: "plan", ollama: "local", lmstudio: "local", none: "none"};
@@ -812,8 +948,11 @@ function wRender() {
     body.innerHTML = `<h2 id="wTitle">Tell TAVIS who you are</h2>
       <p class="lead">One or two lines make the advice about your work instead of anyone's. Stored only on this computer.</p>
       <label>About you<textarea id="wProfile" placeholder="e.g. I run a small web agency in Italy. Clients are restaurants and shops.">${esc($("#profile").value)}</textarea></label>
+      <p style="margin:-4px 0 14px"><button class="ghost mini" type="button" id="wMem">Fill it from my AI memory</button>
+      <span class="hint" id="wMemMsg" role="status" style="display:block;margin-top:6px">Reads what Claude Code, Codex or Gemini CLI keep about you on this computer, and writes a short profile you can edit.</span></p>
       <label>Language of the cards<select id="wLang">${$("#lang").innerHTML}</select></label>`;
     $("#wLang").value = $("#lang").value;
+    $("#wMem").onclick = () => fillFromMemory($("#wProfile"), $("#wMemMsg"));
   } else if (wStep === 2) {
     body.innerHTML = `<h2 id="wTitle">TikTok, if you want it</h2>
       <p class="lead">TikTok only opens videos to signed-in people. A window will show TikTok's QR code: scan it with the TikTok app and you are done. TAVIS never sees a password. YouTube and links work without this.</p>
@@ -825,7 +964,7 @@ function wRender() {
     const name = st.brains[wBrain] ? st.brains[wBrain].label : "No AI";
     body.innerHTML = `<h2 id="wTitle">Ready</h2>
       <p class="lead">Brain: <b>${esc(name)}</b>. TikTok: ${st.logged_in ? "signed in" : "not signed in (optional)"}.<br>
-      Pick TikTok or YouTube, type a username, choose a video, and read the card before anything reaches Claude.</p>`;
+      Pick TikTok or YouTube, type a username, choose a video, and read the card before anything reaches your AI.</p>`;
   }
 }
 async function wNext() {
@@ -841,11 +980,22 @@ async function wNext() {
 }
 $("#wNext").onclick = wNext;
 $("#wBack").onclick = () => { if (wStep) { wStep--; wRender(); } };
-$("#chipSetup").onclick = () => { wStep = 0; $("#wiz").hidden = false; wRender(); };
+let wizOpener = null;
+async function openWizard() { wizOpener = document.activeElement; if (!st) await loadStatus(); wStep = 0; $("#wiz").hidden = false; wRender(); $("#wNext").focus(); }
+function closeWizard() { $("#wiz").hidden = true; if (wizOpener && wizOpener.focus) wizOpener.focus(); }
+$("#chipSetup").onclick = openWizard;
+$("#wClose").onclick = closeWizard;
+$("#wiz").addEventListener("keydown", e => {  // keep Tab inside the dialog while it is open
+  if (e.key !== "Tab") return;
+  const f = [...$("#wiz").querySelectorAll("button, input, select, textarea, a[href]")].filter(x => !x.disabled && x.offsetParent);
+  if (!f.length) return;
+  if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+});
 loadStatus().then(() => {
   const saved = localGet("brain");
   if (saved && st.brains[saved] && st.brains[saved].ok) { $("#brain").value = saved; loadStatus(); }
-  if (!st.setup_done) { $("#wiz").hidden = false; wRender(); }
+  if (!st.setup_done) openWizard();
 });
 loadHistory(); loadSkills();
 setInterval(() => { if (!document.hidden) loadStatus().catch(() => {}); }, 15000);

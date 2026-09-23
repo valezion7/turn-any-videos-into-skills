@@ -1,6 +1,7 @@
 """The ways TAVIS can think: a coding agent on your plan (Claude Code, Codex, Gemini CLI), any API
 (Anthropic or OpenAI-compatible: OpenAI, DeepSeek, OpenRouter, Groq, Mistral, xAI, Gemini), a local
 model (Ollama, LM Studio), or no AI at all."""
+import contextlib
 import json
 import os
 import re
@@ -9,6 +10,8 @@ import subprocess
 import tempfile
 import urllib.error
 import urllib.request
+
+from . import cancel
 
 ANTHROPIC_MODEL = os.environ.get("TAVIS_ANTHROPIC_MODEL", "claude-sonnet-5")
 OLLAMA_URL = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
@@ -43,9 +46,9 @@ class ClaudeCode:
                "--setting-sources", "project", "--tools", ""]
         if self.model:
             cmd += ["--model", self.model]
-        with tempfile.TemporaryDirectory(prefix="tavis-brain-") as empty:
+        with _scratch() as empty:
             try:
-                r = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
+                r = cancel.run(cmd, input=prompt, text=True,
                                    encoding="utf-8", errors="replace", timeout=900, cwd=empty)
             except subprocess.TimeoutExpired:
                 raise BrainError("Claude Code did not answer within 15 minutes.")
@@ -55,9 +58,20 @@ class ClaudeCode:
         return r.stdout
 
 
+@contextlib.contextmanager
+def _scratch():
+    """An empty folder for a CLI brain to run in. On Windows a child of the CLI can hold it open
+    for a moment after the answer arrives, so cleaning up must never throw the answer away."""
+    d = tempfile.mkdtemp(prefix="tavis-brain-")
+    try:
+        yield d
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
 def _run_cli(label, cmd, prompt, cwd, timeout=900):
     try:
-        return subprocess.run(cmd, input=prompt, capture_output=True, text=True,
+        return cancel.run(cmd, input=prompt, text=True,
                               encoding="utf-8", errors="replace", timeout=timeout, cwd=cwd)
     except subprocess.TimeoutExpired:
         raise BrainError(f"{label} did not answer within {timeout // 60} minutes.")
@@ -78,7 +92,7 @@ class Codex:
         exe = shutil.which("codex")
         if not exe:
             raise BrainError("Codex is not installed or not on PATH.")
-        with tempfile.TemporaryDirectory(prefix="tavis-brain-") as empty:
+        with _scratch() as empty:
             out = os.path.join(empty, "answer.txt")
             cmd = [exe, "exec", "--sandbox", "read-only", "--skip-git-repo-check", "--ephemeral",
                    "--output-last-message", out] + (["-m", self.model] if self.model else []) + ["-"]
@@ -112,7 +126,7 @@ class GeminiCLI:
         if not exe:
             raise BrainError("Gemini CLI is not installed or not on PATH.")
         cmd = [exe, "-p", "", "--approval-mode", "plan", "-e", "none"] + (["-m", self.model] if self.model else [])
-        with tempfile.TemporaryDirectory(prefix="tavis-brain-") as empty:
+        with _scratch() as empty:
             r = _run_cli("Gemini CLI", cmd, prompt, empty)
         if r.returncode != 0 or not r.stdout.strip():
             raise BrainError("Gemini CLI failed: " + (r.stderr.strip() or r.stdout.strip())[-400:]

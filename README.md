@@ -1,6 +1,6 @@
 # TAVIS: Turn Any VIdeo into Skills
 
-Give it a video that teaches something. You get a learning card to read, and a skill Claude can use once you approve it.
+Give it a video that teaches something. You get a learning card to read, and a skill your AI can use once you approve it.
 
 ```
     .-"""-.-"""-.      ████████  █████  ██    ██ ██ ███████
@@ -66,6 +66,14 @@ You do not need Claude Code to use what TAVIS makes. Every card and every skill 
 - **Download for Claude app (.zip)**: upload it in the Claude app (web or desktop) under Settings > Capabilities > Skills, with code execution turned on (Pro, Max, Team and Enterprise plans). TAVIS warns you if the name or description breaks the app's limits.
 - **Download SKILL.md**: the plain file, for Claude Code on another machine or to share.
 - **Copy for ChatGPT / other apps**: the same method as plain instructions, ready to paste into a ChatGPT Project or custom GPT, a Gemini Gem, or any assistant that takes custom instructions.
+
+### Moving around, stopping, cleaning up
+
+- **Stop** ends a running job for real: the download, the transcription and the AI all stop, and nothing is saved.
+- **← Back** on every screen, and the browser's back button and **Esc** work too.
+- **Delete** a card with the × in Recent, or **Clear all**. **Uninstall skill** in the editor removes a skill TAVIS wrote (it never touches skills it did not write). Every delete asks first, inside the page.
+- **Fill it from my AI memory** (setup and "About you"): reads what Claude Code, Codex or Gemini CLI keep about you on this computer (`CLAUDE.md`, Claude Code "user" memories, `AGENTS.md`, `GEMINI.md`), drops every line that looks like a key or personal data (IBAN, tax codes, emails, phone numbers), and writes a short profile you edit before it is saved.
+- Keyboard and screen readers: everything is reachable with Tab, tabs move with the arrow keys, the setup dialog keeps focus and closes with Esc, there is a skip link, and status messages are announced.
 
 ## How it works
 

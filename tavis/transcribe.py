@@ -10,7 +10,7 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-from . import source
+from . import cancel, source
 
 TIME = re.compile(r"(?:(\d+):)?(\d{1,2}):(\d{2})[.,](\d{3})\s*-->")
 TAG = re.compile(r"<[^>]+>")
@@ -75,11 +75,18 @@ def whisper(audio_path, size=None):
         model = WhisperModel(size, device=device, compute_type=compute)
         segs, info = model.transcribe(str(audio_path), vad_filter=True)  # language: detected from the audio
         # segments are lazy: a missing CUDA library only shows up here, not when the model loads
-        return [(s.start, s.text.strip()) for s in segs if s.text.strip()], info.language
+        out = []
+        for s in segs:  # one segment at a time, so Stop works mid-transcription
+            cancel.check()
+            if s.text.strip():
+                out.append((s.start, s.text.strip()))
+        return out, info.language
 
     if os.environ.get("TAVIS_WHISPER_DEVICE", "auto") != "cpu":
         try:
             return run("cuda", "float16")
+        except cancel.Cancelled:
+            raise
         except Exception:  # no GPU, or cuBLAS/cuDNN not installed: the CPU is slower but always there
             pass
     return run("cpu", "int8")

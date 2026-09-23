@@ -148,6 +148,57 @@ def save_profile(text):
     PROFILE.write_text((text or "").strip()[:4000], encoding="utf-8")
 
 
+PROFILE_PROMPT = """Below are notes that AI assistants keep about one person on their computer.
+Write a short profile of this person for another assistant that will adapt advice to them:
+3 to 6 plain sentences about their work, business, clients or audience, skills, tools and current goals.
+Leave out names of clients or people, private details, credentials, file paths and anything about
+how the assistant should behave. Write in {language}. Answer with the profile only.
+
+<notes>
+{notes}
+</notes>"""
+
+SECRETISH = re.compile(r"(sk-[a-z0-9_-]{8,}|api[_-]?key|token|password|passwd|secret|bearer\s|[a-f0-9]{32,}"
+                       r"|iban|codice fiscale|partita iva|p\.\s?iva|vat|tax id|fiscal|ssn|social security"
+                       r"|[\w.+-]+@[\w-]+\.[\w.]+|\+?\d[\d\s().-]{8,}\d)", re.I)  # secrets and personal data never leave
+
+
+def profile_sources():
+    """Where assistants keep notes about you on this computer: global instructions and 'user' memories."""
+    home = Path.home()
+    found = [p for p in (home / ".claude" / "CLAUDE.md", home / ".codex" / "AGENTS.md",
+                         home / ".gemini" / "GEMINI.md") if p.exists()]
+    for mem in (home / ".claude" / "projects").glob("*/memory/*.md"):
+        try:
+            head = mem.read_text(encoding="utf-8", errors="replace")[:600]
+        except OSError:
+            continue
+        if re.search(r"^\s*type:\s*user", head, re.M) or mem.name.startswith("user_"):
+            found.append(mem)
+    return found[:40]
+
+
+def profile_notes(limit=24_000):
+    """The notes, with every line that looks like a secret dropped before anything leaves this function."""
+    chunks = []
+    for p in profile_sources():
+        text = p.read_text(encoding="utf-8", errors="replace")
+        text = "\n".join(l for l in text.splitlines() if not SECRETISH.search(l))
+        chunks.append(f"--- {p.name} ---\n{text.strip()}")
+    return "\n\n".join(chunks)[:limit]
+
+
+def suggest_profile(brain, lang="en"):
+    if brain.name == "none":
+        raise ValueError("Reading your memory needs a brain. Pick one first, or write the profile yourself.")
+    notes = profile_notes()
+    if not notes.strip():
+        raise ValueError("No assistant memory found on this computer (CLAUDE.md, Claude Code memories, "
+                         "AGENTS.md, GEMINI.md). Write the profile yourself: two lines are enough.")
+    text = brain.complete(PROFILE_PROMPT.format(language=LANGS.get(lang, lang), notes=notes)).strip()
+    return {"text": text[:2000], "sources": [str(p) for p in profile_sources()]}
+
+
 def slugify(text, fallback="video-skill"):
     s = re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
     s = "-".join(s.split("-")[:6])[:60].strip("-")
@@ -487,6 +538,35 @@ def save_history(meta, card, status="pending"):
 def load_history(key):
     p = HISTORY / f"{slugify(key)}.json"
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+
+def delete_history(key):
+    p = HISTORY / f"{slugify(key)}.json"
+    if p.exists():
+        p.unlink()
+
+
+def clear_history():
+    """Forget every card. Installed skills stay: they live in ~/.claude/skills."""
+    n = 0
+    for p in HISTORY.glob("*.json") if HISTORY.exists() else []:
+        p.unlink()
+        n += 1
+    return n
+
+
+def uninstall_skill(name):
+    """Remove a skill TAVIS wrote. Skills written by anything else are never touched."""
+    import shutil
+    p = skill_path(name)
+    if not p.exists():
+        raise FileNotFoundError(name)
+    if "Extracted with TAVIS" not in p.read_text(encoding="utf-8", errors="replace"):
+        raise PermissionError("TAVIS only removes skills it wrote itself.")
+    shutil.rmtree(p.parent)
+    for rec in (json.loads(f.read_text(encoding="utf-8")) for f in HISTORY.glob("*.json")) if HISTORY.exists() else []:
+        if rec.get("status") == "approved" and rec["card"]["skill"]["name"] == slugify(name):
+            save_history(rec["meta"], rec["card"], "pending")
 
 
 def list_history(limit=30):

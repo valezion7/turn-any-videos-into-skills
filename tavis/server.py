@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import __version__, brain, card, learn, source, transcribe
+from . import __version__, brain, cancel, card, learn, source, transcribe
 
 TOKEN = secrets.token_urlsafe(24)
 JOBS = {}
@@ -23,9 +23,16 @@ def _job(fn):
     jid = uuid.uuid4().hex[:12]
     JOBS[jid] = {"done": False, "log": [], "error": None}
 
+    def log(m):
+        cancel.check()  # every step is a chance to stop
+        JOBS[jid]["log"].append(m)
+
     def run():
+        cancel.bind(jid)
         try:
-            JOBS[jid].update(fn(lambda m: JOBS[jid]["log"].append(m), JOBS[jid]))
+            JOBS[jid].update(fn(log, JOBS[jid]))
+        except cancel.Cancelled:
+            JOBS[jid]["error"], JOBS[jid]["cancelled"] = "Stopped. Nothing was saved.", True
         except Exception as e:  # shown to the user as-is: the messages are written for people
             if not isinstance(e, (source.SourceError, brain.BrainError, ValueError)):
                 traceback.print_exc()
@@ -149,6 +156,29 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/pull":
                 model = b.get("model") or STARTER_MODEL
                 return self._send(200, {"job": _job(lambda log, job: (brain.Ollama.pull(model, log), {"model": model})[1])})
+            if path == "/api/profile/suggest":
+                thinker = brain.get(b.get("brain", "claude-code"), b.get("model") or None)
+                return self._send(200, {"job": _job(lambda log, job: (log("reading your assistant memory"),
+                                                                     card.suggest_profile(thinker, b.get("lang", "en")))[1])})
+            if path == "/api/profile/sources":
+                return self._send(200, {"sources": [str(p) for p in card.profile_sources()]})
+            if path == "/api/cancel":
+                if b.get("job") in JOBS:
+                    cancel.cancel(b["job"])
+                return self._send(200, {"ok": True})
+            if path == "/api/history/delete":
+                card.delete_history(b.get("key", ""))
+                return self._send(200, {"ok": True})
+            if path == "/api/history/clear":
+                return self._send(200, {"removed": card.clear_history()})
+            if path == "/api/skill/delete":
+                try:
+                    card.uninstall_skill(b.get("name", ""))
+                except FileNotFoundError:
+                    return self._send(404, {"error": "no such skill"})
+                except PermissionError as e:
+                    return self._send(403, {"error": str(e)})
+                return self._send(200, {"ok": True})
             if path == "/api/export":
                 if b.get("key"):
                     rec = card.load_history(b["key"])

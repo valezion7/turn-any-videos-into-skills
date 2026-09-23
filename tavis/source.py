@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from . import cancel
+
 HOME = Path(os.environ.get("TAVIS_HOME") or Path.home() / ".tavis")
 COOKIES = HOME / "cookies.txt"
 
@@ -61,7 +63,7 @@ def _impersonate(args):
 
 def _run(args, timeout=180):
     try:
-        r = subprocess.run(_base() + _impersonate(args) + args, capture_output=True, text=True,
+        r = cancel.run(_base() + _impersonate(args) + args, text=True,
                            encoding="utf-8", errors="replace", timeout=timeout)
     except subprocess.TimeoutExpired:
         raise SourceError("yt-dlp took too long. Check your connection and try again.")
