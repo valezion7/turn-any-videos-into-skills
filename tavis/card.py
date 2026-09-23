@@ -427,6 +427,46 @@ def ai_edit(brain, text, instruction):
             "diff": diff_summary(text, body)}
 
 
+def app_check(text):
+    """Limits the Claude app puts on uploaded skills. Empty list = ready to upload."""
+    problems = []
+    m = re.match(r"^---\s*\n(.*?)\n---", text.strip(), re.S)
+    head = m.group(1) if m else ""
+    name = (re.search(r"^name:\s*(.+)$", head, re.M) or [None, ""])[1].strip().strip('"')
+    desc = (re.search(r"^description:\s*(.+)$", head, re.M) or [None, ""])[1].strip().strip('"')
+    if not re.fullmatch(r"[a-z0-9-]{1,64}", name):
+        problems.append("the name must be up to 64 lowercase letters, digits or hyphens")
+    if not desc or len(desc) > 1024:
+        problems.append(f"the description must be 1 to 1024 characters (it has {len(desc)})")
+    if "<" in desc or ">" in desc:
+        problems.append("the description cannot contain < or >")
+    return problems
+
+
+def for_other_apps(text):
+    """The skill as plain instructions to paste into ChatGPT, Gemini, a Project or a custom GPT."""
+    m = re.match(r"^---\s*\n(.*?)\n---\s*\n", text.strip() + "\n", re.S)
+    head, body = (m.group(1), text.strip()[m.end():]) if m else ("", text)
+    desc = (re.search(r"^description:\s*\"?(.*?)\"?\s*$", head, re.M) or [None, ""])[1]
+    trigger = re.sub(r"^use when\s*", "", desc, flags=re.I)
+    return f"Apply the following method whenever {trigger}\n\n{body.strip()}\n"
+
+
+def export_skill(name, text, fmt="zip"):
+    """(bytes, content type, filename). The zip has the skill folder at its root, as the Claude app expects."""
+    import io
+    import zipfile
+    name = slugify(name)
+    if fmt == "md":
+        return text.encode("utf-8"), "text/markdown; charset=utf-8", "SKILL.md"
+    if fmt == "txt":
+        return for_other_apps(text).encode("utf-8"), "text/plain; charset=utf-8", f"{name}.txt"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr(f"{name}/SKILL.md", text)
+    return buf.getvalue(), "application/zip", f"{name}.zip"
+
+
 def diff_summary(old, new):
     """What changed, line by line, for the "Show reasoning" panel."""
     import difflib

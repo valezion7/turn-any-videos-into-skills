@@ -58,6 +58,14 @@ tavis learn "https://www.youtube.com/watch?v=bjdBVZa66oU" --lang it
 
 Le skill scritte da TAVIS sono elencate in **Your skills**. Aprendone una puoi modificare il `SKILL.md` a mano, oppure chiedere al cervello che stai usando di cambiarla: "accorciala", "aggiungi un esempio per il mio lavoro", "togli tutto ciò che promuove un prodotto". Ogni risposta si apre in una nuova scheda accanto alla versione salvata, come le schede del browser: passi dall'una all'altra, chiudi quelle che non ti servono, continui a chiedere partendo da quella che vuoi. **Show reasoning** spiega cosa ha cambiato il cervello e perché, con le righe tolte e aggiunte. Salvi la scheda che ti piace. TAVIS rifiuta di salvare un file che Claude Code non riuscirebbe più a caricare.
 
+### Usare una skill nell'app di Claude, in ChatGPT o altrove
+
+Per usare quello che fa TAVIS non serve Claude Code. Ogni scheda e ogni skill ha tre bottoni:
+
+- **Download for Claude app (.zip)**: si carica nell'app di Claude (web o desktop) da Impostazioni > Funzionalità > Skill, con l'esecuzione del codice attiva (piani Pro, Max, Team ed Enterprise). TAVIS ti avvisa se il nome o la descrizione superano i limiti dell'app.
+- **Download SKILL.md**: il file così com'è, per Claude Code su un altro computer o da condividere.
+- **Copy for ChatGPT / other apps**: lo stesso metodo come istruzioni in testo semplice, da incollare in un Progetto o in un GPT personalizzato di ChatGPT, in un Gem di Gemini o in qualsiasi assistente che accetta istruzioni personalizzate.
+
 ## Come funziona
 
 1. **Video**: yt-dlp legge i dati del video e i sottotitoli del creator, o quelli automatici della piattaforma. Il video non viene scaricato.

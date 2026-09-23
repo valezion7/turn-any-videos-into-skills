@@ -196,6 +196,8 @@ a.t:hover{color:var(--ember)}
 .diff .add{color:var(--good)} .diff .del{color:var(--bad);text-decoration:line-through;text-decoration-color:rgba(228,121,95,.4)} .diff .hunk{color:var(--dim)}
 /* scrollbars: ember thumb, no track, arrows kept */
 *{scrollbar-color:var(--ember) transparent}
+.exportbox{margin-top:6px;padding:14px 16px;border:1px dashed var(--line2);border-radius:8px;display:flex;flex-direction:column;gap:10px}
+.exportbox .label{margin:0}
 .none{color:var(--dim)}
 .added{font:600 .66rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);background:var(--grey);border-radius:3px;padding:2px 5px;margin-left:4px;vertical-align:1px;white-space:nowrap}
 .skill{display:grid;gap:10px}
@@ -547,6 +549,7 @@ function renderCard() {
       <button class="ghost" id="reject" type="button">Reject</button>
       <span class="hint" id="status">${current.status === "approved" ? "Already approved once." : current.status === "rejected" ? "Rejected earlier." : ""}</span>
     </div>
+    <div id="cardExport"></div>
   </article>`;
   const edited = () => ({name: $("#skName").value, description: $("#skDesc").value, body: $("#skBody").value});
   const preview = async () => { try { const r = await api("/api/render", {key: current.key, skill: edited()});
@@ -567,6 +570,8 @@ function renderCard() {
       } else $("#status").textContent = e.message;
     }
   };
+  $("#cardExport").innerHTML = exportBox();
+  wireExport($("#cardExport"), () => ({key: current.key, skill: edited()}));
   $("#approve").onclick = () => approve(false);
   $("#reject").onclick = async () => { await api("/api/reject", {key: current.key}); $("#status").textContent = "Rejected. Nothing was written."; loadHistory(); };
 }
@@ -582,6 +587,46 @@ async function loadSkills() {
     b.title = s.description;
     b.onclick = () => openSkill(s.name);
     box.appendChild(b);
+  });
+}
+// ---- export: for people who use the Claude app, ChatGPT or others instead of the command line ----
+function exportBox() {
+  return `<div class="exportbox"><p class="label">Use it in an app</p>
+    <div class="row" style="flex-wrap:wrap">
+      <button class="ghost" type="button" data-ex="zip">Download for Claude app (.zip)</button>
+      <button class="ghost" type="button" data-ex="md">Download SKILL.md</button>
+      <button class="ghost" type="button" data-ex="copy">Copy for ChatGPT / other apps</button>
+    </div>
+    <p class="hint" data-exmsg>Claude app: Settings › Capabilities › Skills › Upload, with code execution turned on.
+      ChatGPT, Gemini and others: paste the copied text into a Project, a custom GPT or a Gem.</p></div>`;
+}
+async function download(body, fallbackName) {
+  const r = await fetch("/api/export", {method: "POST", headers: {"X-Tavis-Token": TOKEN, "Content-Type": "application/json"},
+                                         body: JSON.stringify(body)});
+  if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || r.statusText); }
+  const name = (/filename="([^"]+)"/.exec(r.headers.get("Content-Disposition") || "") || [])[1] || fallbackName;
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  return name;
+}
+function wireExport(root, getBody) {
+  const msg = root.querySelector("[data-exmsg]");
+  const say = (t, bad) => { msg.innerHTML = t; msg.style.color = bad ? "var(--bad)" : ""; };
+  root.querySelectorAll("[data-ex]").forEach(b => b.onclick = async () => {
+    try {
+      const body = getBody();
+      const check = await api("/api/export", {...body, format: "check"});
+      if (b.dataset.ex === "copy") {
+        await navigator.clipboard.writeText(check.other);
+        return say("Copied. Paste it into the instructions of a Project, a custom GPT or a Gem.");
+      }
+      const name = await download({...body, format: b.dataset.ex}, "skill.zip");
+      say(check.problems.length && b.dataset.ex === "zip"
+        ? `Downloaded ${esc(name)}, but the Claude app may refuse it: ${check.problems.map(esc).join("; ")}. Fix it in the editor first.`
+        : `Downloaded ${esc(name)}.` + (b.dataset.ex === "zip" ? " Upload it in the Claude app under Settings › Capabilities › Skills." : ""),
+        check.problems.length && b.dataset.ex === "zip");
+    } catch (e) { say(esc(e.message), true); }
   });
 }
 const QUICK = ["Make it shorter and sharper", "Make the steps more concrete", "Add an example for my work",
@@ -602,6 +647,7 @@ async function openSkill(name) {
         <div class="tabbody"><textarea id="edText" spellcheck="false" aria-label="SKILL.md"></textarea>
           <div class="why" id="edWhy" hidden></div></div>
         <div class="actions" id="edActions"></div>
+        <div id="edExport"></div>
       </section>
       <aside class="aipanel"><p class="label">Change it with ${esc(label)}</p>
         <p class="hint" id="edBase" style="margin:0"></p>
@@ -614,6 +660,8 @@ async function openSkill(name) {
   $("#edText").oninput = () => { cur().text = $("#edText").value; drawTabs(); };
   document.querySelectorAll(".aipanel .chips button").forEach(c => c.onclick = () => { $("#edAsk").value = c.textContent; $("#edAsk").focus(); });
   $("#edGo").onclick = askAI;
+  $("#edExport").innerHTML = exportBox();
+  wireExport($("#edExport"), () => ({name: ed.name, text: cur().text}));
   showTab(0);
 }
 const cur = () => ed.tabs.find(t => t.id === ed.active);

@@ -59,6 +59,14 @@ tavis learn "https://www.youtube.com/watch?v=bjdBVZa66oU" --lang en
 
 Every skill TAVIS wrote is listed under **Your skills**. Open one and you can edit the `SKILL.md` directly, or ask the brain you are using to change it: "make it shorter", "add an example for my work", "remove anything that promotes a product". Every answer opens as a new tab next to the saved version, like browser tabs: switch between them, close the ones you do not want, keep asking from any of them. **Show reasoning** tells you what the brain changed and why, with the lines it removed and added. Save the tab you like. TAVIS refuses to save a file that Claude Code could no longer load.
 
+### Using a skill in the Claude app, ChatGPT or elsewhere
+
+You do not need Claude Code to use what TAVIS makes. Every card and every skill has three buttons:
+
+- **Download for Claude app (.zip)**: upload it in the Claude app (web or desktop) under Settings > Capabilities > Skills, with code execution turned on (Pro, Max, Team and Enterprise plans). TAVIS warns you if the name or description breaks the app's limits.
+- **Download SKILL.md**: the plain file, for Claude Code on another machine or to share.
+- **Copy for ChatGPT / other apps**: the same method as plain instructions, ready to paste into a ChatGPT Project or custom GPT, a Gemini Gem, or any assistant that takes custom instructions.
+
 ## How it works
 
 ```

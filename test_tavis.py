@@ -127,6 +127,21 @@ def test_skill_text_and_ai_edit():
     assert out["diff"]["added"] == 1 and out["diff"]["removed"] == 1, out["diff"]
 
 
+def test_export_for_apps():
+    import io
+    import zipfile
+    text = "---\nname: price-talk\ndescription: \"Use when a client pushes back on price.\"\n---\n\n## Steps\n1. Ask why."
+    data, kind, fname = card.export_skill("price-talk", text, "zip")
+    z = zipfile.ZipFile(io.BytesIO(data))
+    assert fname == "price-talk.zip" and z.namelist() == ["price-talk/SKILL.md"], z.namelist()
+    assert z.read("price-talk/SKILL.md").decode() == text
+    assert card.app_check(text) == []
+    assert card.app_check(text.replace("price-talk", "Price Talk!")) != []
+    assert card.app_check(text.replace("a client", "a <client>")) != []
+    other = card.for_other_apps(text)
+    assert other.startswith("Apply the following method whenever a client pushes back on price.") and "---" not in other
+
+
 def test_openai_compatible_model_pick():
     from tavis import brain
     p = brain.get("deepseek")

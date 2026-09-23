@@ -149,6 +149,28 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/pull":
                 model = b.get("model") or STARTER_MODEL
                 return self._send(200, {"job": _job(lambda log, job: (brain.Ollama.pull(model, log), {"model": model})[1])})
+            if path == "/api/export":
+                if b.get("key"):
+                    rec = card.load_history(b["key"])
+                    if not rec:
+                        return self._send(404, {"error": "not found"})
+                    rec["card"]["skill"].update(_skill_fields(b.get("skill") or {}))
+                    name, text = rec["card"]["skill"]["name"], card.render_skill(rec["card"], rec["meta"])
+                else:
+                    name, text = b.get("name", ""), b.get("text", "")
+                    try:
+                        text = card.check_skill_text(text)
+                    except ValueError as e:
+                        return self._send(400, {"error": str(e)})
+                if b.get("format") == "check":
+                    return self._send(200, {"problems": card.app_check(text), "other": card.for_other_apps(text)})
+                data, kind, fname = card.export_skill(name, text, b.get("format", "zip"))
+                self.send_response(200)
+                self.send_header("Content-Type", kind)
+                self.send_header("Content-Disposition", f'attachment; filename="{fname}"')
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                return self.wfile.write(data)
             if path == "/api/skill/save":
                 try:
                     p = card.write_skill(b.get("name", ""), b.get("text", ""))
