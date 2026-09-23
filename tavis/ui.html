@@ -69,6 +69,9 @@ details textarea{margin-top:8px;font-family:var(--body);font-size:.88rem}
 .hist{display:flex;flex-direction:column;gap:2px}
 .hist button{background:none;border:0;text-align:left;padding:7px 0;cursor:pointer;color:var(--paper);display:flex;gap:10px;align-items:baseline;font-size:.86rem;border-bottom:1px solid var(--line)}
 .hist .s{font:400 .68rem var(--mono);text-transform:uppercase;letter-spacing:.08em;flex:none;width:70px}
+.hist .ht{flex:1;min-width:0}
+.edit{margin-left:auto;flex:none;align-self:center;font:600 .72rem/1 var(--mono);letter-spacing:.04em;color:var(--ember);border:1px solid rgba(255,106,0,.45);border-radius:99px;padding:5px 9px}
+.hist button:hover .edit{background:var(--ember);color:#fff}
 .s.approved{color:var(--good)} .s.rejected{color:var(--dim)} .s.pending{color:var(--warn)}
 
 .empty{max-width:560px;color:var(--grey);padding-top:30px}
@@ -583,7 +586,8 @@ async function loadSkills() {
   box.innerHTML = items.length ? "" : '<p class="hint">Approved skills show up here, ready to edit.</p>';
   items.forEach(s => {
     const b = document.createElement("button"); b.type = "button";
-    b.innerHTML = `<span class="s approved">skill</span><span>${esc(s.name)}</span>`;
+    b.innerHTML = `<span class="s approved">skill</span><span class="ht">${esc(s.name)}</span><span class="edit" aria-hidden="true">✎ Edit</span>`;
+    b.setAttribute("aria-label", `Edit ${s.name}`);
     b.title = s.description;
     b.onclick = () => openSkill(s.name);
     box.appendChild(b);
@@ -740,8 +744,15 @@ async function loadHistory() {
   $("#hist").innerHTML = items.length ? "" : '<p class="hint">Nothing yet.</p>';
   items.forEach(i => {
     const b = document.createElement("button"); b.type = "button";
-    b.innerHTML = `<span class="s ${esc(i.status)}">${esc(i.status)}</span><span>${esc(i.title)}</span>`;
-    b.onclick = async () => { const r = await api("/api/card?key=" + encodeURIComponent(i.key));
+    const editable = i.status === "approved";
+    b.innerHTML = `<span class="s ${esc(i.status)}">${esc(i.status)}</span><span class="ht">${esc(i.title)}</span>` +
+      (editable ? `<span class="edit" title="Edit the installed skill">✎ Edit</span>` : "");
+    b.onclick = async e => {
+      if (editable && e.target.classList.contains("edit")) {
+        try { return await openSkill(i.skill); }
+        catch { $("#main").innerHTML = `<div class="err">The skill “${esc(i.skill)}” is no longer installed. Open the card and press Learn this skill again.</div>`; return; }
+      }
+      const r = await api("/api/card?key=" + encodeURIComponent(i.key));
       current = {key: r.key, meta: r.meta, card: r.card, status: r.status}; renderCard(); };
     $("#hist").appendChild(b);
   });
