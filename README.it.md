@@ -9,11 +9,11 @@ Gli dai un video che insegna qualcosa. Ne esce una scheda da leggere e, se la ap
   |   '-'   '-'   |       ██    ██   ██  ██  ██  ██      ██
    \  '._____.'  /        ██    ██   ██   ████   ██ ███████
     '-.._____..-'
-                     turn any video into a skill   ·   v0.3.0
+                     turn any video into a skill   ·   v0.4.0
 ```
 
 [![Licenza: MIT](https://img.shields.io/badge/license-MIT-FF6A00.svg)](LICENSE)
-![Versione](https://img.shields.io/badge/version-0.3.0-0B0A09.svg)
+![Versione](https://img.shields.io/badge/version-0.4.0-0B0A09.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-0B0A09.svg)
 
 *[Read in English](README.md)* · **[Perché l'ho fatto, e cosa hanno scoperto le schede](https://github.com/valezion7/turn-any-videos-into-skills/discussions/1)** (in inglese) · [Discussions](https://github.com/valezion7/turn-any-videos-into-skills/discussions)
@@ -90,7 +90,9 @@ Per usare quello che fa TAVIS non serve Claude Code. Ogni scheda e ogni skill ha
 
 | sezione | a cosa risponde |
 |---|---|
-| **Verdetto** | Vale una skill? Intrattenimento e televendite prendono un "no" |
+| **Verdetto** | **Nuova abilità**, **in parte nuova**, **la tua AI la sa già** oppure **non vale**. Una skill ha senso solo per quello che la tua AI non sa ancora fare |
+| **Novità per la tua AI** | I pezzi che un assistente non conosce: strumenti e versioni nuove, impostazioni precise, ricette di prompt, l'ordine dei passi tra più strumenti |
+| **Strumenti** | Ogni strumento, con il link ufficiale, come installarlo o aprirlo, come verificare che funzioni e quanto costa. Con Claude Code vengono controllati online sulle pagine ufficiali |
 | **Che cosa insegna** | Due frasi semplici |
 | **Che cosa ha imparato** | Punti concreti col minuto del video (cliccabile su YouTube) |
 | **A cosa serve** | Situazioni reali in cui aiuta |
@@ -98,7 +100,9 @@ Per usare quello che fa TAVIS non serve Claude Code. Ogni scheda e ogni skill ha
 | **Per te** | Abitudini, come impostare il lavoro, una cosa da provare questa settimana |
 | **Avvertimenti** | sponsorizzato · conflitto d'interessi · rischioso · superato · non verificabile · manipolazione |
 | **Confidenza** | alta / media / bassa, e perché |
-| **La skill** | Nome, descrizione e corpo, tutti modificabili prima di approvare |
+| **La skill** | Nome, descrizione e corpo, solo sulla parte nuova, con una sezione **Setup**. Può portare con sé dei file (modelli di prompt, checklist, piccoli script). Tutto modificabile prima di approvare |
+
+Perché prima la novità: la tua AI conosce già i consigli generici, e una skill che li ripete è rumore. TAVIS tiene solo quello che è nuovo, e dà alla tua AI quello che le serve per metterlo in pratica: gli strumenti, dove prenderli, come verificare che funzionino. La skill dice alla tua AI di chiederti il permesso prima di installare qualsiasi cosa.
 
 Gli avvertimenti sono la ragione per cui l'approvazione è manuale. Molti video "formativi" vendono qualcosa. Una skill costruita su una pubblicità spinge Claude verso quel prodotto ogni volta che si carica.
 

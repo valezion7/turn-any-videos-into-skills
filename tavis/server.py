@@ -263,15 +263,17 @@ class Handler(BaseHTTPRequestHandler):
                         return self._send(404, {"error": "not found"})
                     rec["card"]["skill"].update(_skill_fields(b.get("skill") or {}))
                     name, text = rec["card"]["skill"]["name"], card.render_skill(rec["card"], rec["meta"])
+                    files = rec["card"]["skill"].get("files")
                 else:
                     name, text = b.get("name", ""), b.get("text", "")
+                    files = card.skill_files(name)
                     try:
                         text = card.check_skill_text(text)
                     except ValueError as e:
                         return self._send(400, {"error": str(e)})
                 if b.get("format") == "check":
                     return self._send(200, {"problems": card.app_check(text), "other": card.for_other_apps(text)})
-                data, kind, fname = card.export_skill(name, text, b.get("format", "zip"))
+                data, kind, fname = card.export_skill(name, text, b.get("format", "zip"), files)
                 self.send_response(200)
                 self.send_header("Content-Type", kind)
                 self.send_header("Content-Disposition", f'attachment; filename="{fname}"')

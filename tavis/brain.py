@@ -33,17 +33,19 @@ class ClaudeCode:
 
     def __init__(self, model=None):
         self.model = model or os.environ.get("TAVIS_CLAUDE_MODEL")
+        # Web search and page reading only, to check tools on their official pages. No files, no shell.
+        self.online = os.environ.get("TAVIS_VERIFY_ONLINE", "1") != "0"
 
     @staticmethod
     def check():
         return (True, "found") if shutil.which("claude") else (False, "`claude` is not on PATH")
 
-    def complete(self, prompt):
+    def complete(self, prompt, web=False):
         exe = shutil.which("claude")
         if not exe:
             raise BrainError("Claude Code is not installed or not on PATH.")
-        cmd = [exe, "-p", "--output-format", "text", "--no-session-persistence",
-               "--setting-sources", "project", "--tools", ""]
+        cmd = [exe, "-p", "--output-format", "text", "--no-session-persistence", "--setting-sources", "project"]
+        cmd += ["--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"] if web and self.online else ["--tools", ""]
         if self.model:
             cmd += ["--model", self.model]
         with _scratch() as empty:

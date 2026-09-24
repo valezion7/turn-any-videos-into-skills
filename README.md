@@ -9,11 +9,11 @@ Give it a video that teaches something. You get a learning card to read, and a s
   |   '-'   '-'   |       ██    ██   ██  ██  ██  ██      ██
    \  '._____.'  /        ██    ██   ██   ████   ██ ███████
     '-.._____..-'
-                     turn any video into a skill   ·   v0.3.0
+                     turn any video into a skill   ·   v0.4.0
 ```
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-FF6A00.svg)](LICENSE)
-![Version](https://img.shields.io/badge/version-0.3.0-0B0A09.svg)
+![Version](https://img.shields.io/badge/version-0.4.0-0B0A09.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-0B0A09.svg)
 [![Stars](https://img.shields.io/github/stars/valezion7/turn-any-videos-into-skills?style=social)](https://github.com/valezion7/turn-any-videos-into-skills)
 
@@ -108,7 +108,9 @@ You do not need Claude Code to use what TAVIS makes. Every card and every skill 
 
 | section | what it answers |
 |---|---|
-| **Verdict** | Is this worth a skill at all? Entertainment and pure sales pitches get a "no" |
+| **Verdict** | **New ability**, **partly new**, **your AI knows this**, or **not worth it**. A skill only makes sense for what your AI cannot do yet |
+| **New for your AI** | The pieces an assistant does not know: new tools and versions, exact settings, prompt recipes, the order of steps across tools |
+| **Tools it needs** | Every tool, with its official link, how to install or open it, how to check it works, and what it costs. With Claude Code they are checked online on the official pages |
 | **What it teaches** | Two plain sentences |
 | **What was learned** | Concrete points with the minute they appear (clickable on YouTube) |
 | **Good for** | Real situations where it helps |
@@ -116,7 +118,9 @@ You do not need Claude Code to use what TAVIS makes. Every card and every skill 
 | **For you** | Habits, how to set up your work, one thing to try this week |
 | **Warnings** | `sponsored` · `conflict of interest` · `risky` · `outdated` · `unverifiable` · `manipulation` |
 | **Confidence** | high / medium / low, and why |
-| **The skill** | Name, trigger description and body. You can edit all three before approving |
+| **The skill** | Name, trigger description and body, only about the new part, with a **Setup** section. It can carry helper files (prompt templates, checklists, small scripts). You can edit it all before approving |
+
+Why novelty first: your AI already knows general advice. A skill that repeats it is noise. TAVIS keeps only what is new, and gives your AI what it needs to act on it: the tools, where to get them, how to check they work. The skill tells your AI to ask you before installing anything.
 
 The warnings are the reason approval is manual. Many "educational" videos sell something. A skill built on an ad keeps nudging Claude toward that product every time it loads.
 
@@ -180,6 +184,7 @@ This opens a browser window with its own profile, straight on TikTok's **QR code
 | `TAVIS_CLAUDE_MODEL` | Claude Code's default | e.g. `opus`, `sonnet` |
 | `--lang` / Card language | `en` | `it`, `es`, `fr`, `de`, `pt` |
 | `--keep DIR` | off | keep subtitles and audio instead of deleting them |
+| `TAVIS_VERIFY_ONLINE` | `1` | with Claude Code, check the tools on their official pages (web search and page reading only). `0` turns it off |
 
 ## A full example
 

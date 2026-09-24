@@ -19,9 +19,15 @@ def wrap(text, indent="    "):
 def show_card(meta, c):
     print(f"\n{EMBER}{meta['title']}{RESET}\n{GREY}{meta['creator']} · {meta['upload_date']} · {meta['url']}")
     print(f"{c['brain']} · {c['transcript_source']}{RESET}\n")
-    print(("  WORTH A SKILL  " if c["worth_a_skill"] else "  NOT WORTH A SKILL  ") + c["verdict"] + "\n")
+    nov = c.get("novelty") or {}
+    label = ("NEW ABILITY" if nov.get("level") != "partly" else "PARTLY NEW") if c["worth_a_skill"] else \
+        ("YOUR AI KNOWS THIS" if nov.get("level") == "known" else "NOT WORTH A SKILL")
+    print(f"  {label}  " + c["verdict"] + "\n")
     sections = [("WHAT IT TEACHES", [c["teaches"]]),
                 ("WHAT WAS LEARNED", [f"[{p['at']}] {p['point']}" if p["at"] else p["point"] for p in c["learned"]]),
+                ("NEW FOR YOUR AI", nov.get("new") or []),
+                ("TOOLS IT NEEDS", [f"{t['name']}: {t['for']} {t['get']} {('| ' + t['install']) if t['install'] else ''}".strip()
+                                    for t in c.get("tools") or []]),
                 ("GOOD FOR", c["uses"]), ("FOR YOUR WORK", c["for_your_work"]), ("FOR YOU", c["for_you"]),
                 ("WARNINGS", [f"{w['kind'].upper()}: {w['text']}" for w in c["warnings"]] or ["none found"]),
                 ("CONFIDENCE", [f"{c['confidence']['level']}: {c['confidence']['why']}"])]
@@ -39,6 +45,9 @@ def cmd_learn(a):
     meta, c = learn(a.url, a.brain, a.transcriber, a.lang, a.model, keep_dir=a.keep,
                     progress=lambda m: print(f"{GREY}  .. {m}{RESET}", flush=True), whisper_size=a.whisper_model)
     show_card(meta, c)
+    if not c["skill"]["body"]:
+        print("  No skill to install for this video. The card is kept under Recent.")
+        return
     if a.yes:
         choice = "y"
     elif a.no:

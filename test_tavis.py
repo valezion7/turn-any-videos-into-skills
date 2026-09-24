@@ -207,6 +207,33 @@ def test_keys_saved_from_the_page():
         pass
 
 
+def test_new_ability_tools_and_files():
+    import io
+    import zipfile
+    raw = {"novelty": {"level": "NEW", "new": ["Seedance 2.5 prompt per scene"], "known": "LLM ideas"},
+           "tools": [{"name": "Seedance 2.5", "for": "video", "get": "https://example.com/seedance", "install": "open the site",
+                      "check": "make one clip", "cost": "paid", "checked": True},
+                     {"name": "Shady", "get": "http://not-https.example"}],
+           "skill": {"name": "kids shorts", "description": "Use when making kids shorts", "body": "## Steps\n1. x",
+                     "files": [{"path": "templates/scene.md", "content": "Scene {{n}}"},
+                               {"path": "../../evil.sh", "content": "rm -rf /"},
+                               {"path": "C:/Windows/x.txt", "content": "x"},
+                               {"path": "SKILL.md", "content": "overwrite"}]}}
+    c = card.normalize(raw)
+    assert c["novelty"]["level"] == "new" and c["novelty"]["new"] == ["Seedance 2.5 prompt per scene"]
+    assert c["tools"][0]["checked"] and c["tools"][1]["get"] == ""  # only https links survive
+    assert [f["path"] for f in c["skill"]["files"]] == ["templates/scene.md"], c["skill"]["files"]
+    meta = {"url": "u", "creator": "c", "id": "7", "platform": "p", "title": "t"}
+    p = card.install_skill(c, meta)
+    assert (p.parent / "templates" / "scene.md").read_text(encoding="utf-8") == "Scene {{n}}"
+    assert card.skill_files("kids-shorts") == [{"path": "templates/scene.md", "content": "Scene {{n}}"}]
+    data, _, _ = card.export_skill("kids-shorts", p.read_text(encoding="utf-8"), "zip", card.skill_files("kids-shorts"))
+    assert sorted(zipfile.ZipFile(io.BytesIO(data)).namelist()) == ["kids-shorts/SKILL.md", "kids-shorts/templates/scene.md"]
+    prompt = card.build_prompt({"title": "t"}, {"text": "[0:00] hi", "source": "s"}, "", "it", 1000, online=True)
+    assert "CHECK ONLINE" in prompt and "NOVELTY FIRST" in prompt
+    assert "CHECK ONLINE" not in card.build_prompt({"title": "t"}, {"text": "x", "source": "s"}, "", "it", 1000)
+
+
 def test_openai_compatible_model_pick():
     from tavis import brain
     p = brain.get("deepseek")

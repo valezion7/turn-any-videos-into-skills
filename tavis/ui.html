@@ -236,6 +236,14 @@ a.t:hover{color:var(--ember)}
 .check{flex-direction:row!important;align-items:center;gap:8px!important;color:var(--paper)!important;margin-top:14px}
 .check input{accent-color:var(--ember);width:16px;height:16px}
 a.ghost{text-decoration:none;display:inline-block}
+.tools{display:grid;gap:10px}
+.tool{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--panel)}
+.tname{display:flex;gap:8px;align-items:baseline}
+.chk{font:600 .7rem var(--mono);color:var(--good)}
+.tfor{color:var(--grey);font-size:.88rem;margin-top:3px}
+.tmeta{font:400 .8rem var(--mono);margin-top:4px;color:var(--grey);word-break:break-all}
+.tcode{display:block;margin-top:8px;font:400 .8rem var(--mono);background:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px 10px;white-space:pre-wrap;word-break:break-all}
+.files details{margin:4px 0}
 .none{color:var(--dim)}
 .added{font:600 .66rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);background:var(--grey);border-radius:3px;padding:2px 5px;margin-left:4px;vertical-align:1px;white-space:nowrap}
 .skill{display:grid;gap:10px}
@@ -636,7 +644,7 @@ const mark = x => esc(x).replace(/\s*\((added|aggiunto|añadido|ajouté|hinzugef
 const list = xs => xs && xs.length ? `<ul>${xs.map(x => `<li>${mark(x)}</li>`).join("")}</ul>` : `<p class="none">Nothing here.</p>`;
 
 function renderCard() {
-  const {meta: m, card: c} = current, sk = c.skill;
+  const {meta: m, card: c} = current, sk = c.skill, nov = c.novelty || {}, tools = c.tools || [];
   const warns = c.warnings.length ? c.warnings.map(w =>
     `<div class="warn"><span class="k ${esc(w.kind)}">${esc(w.kind.replaceAll("_", " "))}</span><span>${mark(w.text)}</span></div>`).join("")
     : `<p class="none">No warnings found. That is the brain's reading, not a guarantee.</p>`;
@@ -646,7 +654,14 @@ function renderCard() {
     <h2>${esc(m.title)}</h2>
     <a class="eyebrow" href="${esc(m.url)}" target="_blank" rel="noopener">${esc(m.url)}</a>
     <div class="meta-note">${esc(c.brain)} · ${esc(c.transcript_source)}</div></div></div>
-    <div class="verdict"><span class="pill ${c.worth_a_skill ? "yes" : "no"}">${c.worth_a_skill ? "worth a skill" : "not worth it"}</span><span>${esc(c.verdict)}</span></div>
+    <div class="verdict"><span class="pill ${c.worth_a_skill ? "yes" : "no"}">${c.worth_a_skill ? (nov.level === "partly" ? "partly new ability" : "new ability") : (nov.level === "known" ? "your AI knows this" : "not worth it")}</span><span>${esc(c.verdict)}</span></div>
+    ${nov.new && nov.new.length ? `<section class="sec"><h3>New for your AI</h3>${list(nov.new)}${nov.known ? `<p class="none" style="margin-top:8px">Already known: ${esc(nov.known)}</p>` : ""}</section>` : ""}
+    ${tools.length ? `<section class="sec"><h3>Tools it needs</h3><div class="tools">${tools.map(t => `<div class="tool">
+        <div class="tname"><b>${esc(t.name)}</b>${t.checked ? ' <span class="chk" title="Checked on the official page">✓ checked online</span>' : ""}</div>
+        <div class="tfor">${esc(t.for)}</div>
+        <div class="tmeta">${t.get ? `<a href="${esc(t.get)}" target="_blank" rel="noopener">${esc(t.get.replace(/^https:\/\//, ""))}</a>` : ""}${t.cost ? ` · ${esc(t.cost)}` : ""}</div>
+        ${t.install ? `<code class="tcode">${esc(t.install)}</code>` : ""}${t.check ? `<div class="tfor">Check: <code>${esc(t.check)}</code></div>` : ""}</div>`).join("")}</div>
+        <p class="hint">The skill tells your AI to ask you before installing anything, and to use these official sources only.</p></section>` : ""}
 
     <section class="sec"><h3>What it teaches</h3><p>${esc(c.teaches)}</p></section>
     <section class="sec"><h3>What was learned</h3>
@@ -660,14 +675,16 @@ function renderCard() {
     <section class="sec"><h3>Confidence</h3><div style="display:flex;gap:12px;align-items:flex-start">
       <span class="pill ${esc(c.confidence.level)}">${esc(c.confidence.level)}</span><span>${esc(c.confidence.why)}</span></div></section>
 
-    <section class="sec"><h3>The skill</h3><div class="skill">
+    ${!sk.body ? `<section class="sec"><h3>The skill</h3><p class="none">No skill for this one: ${nov.level === "known" ? "your AI already knows what the video teaches." : "the video is not worth one."} The tips above are for you.</p></section>` : ""}
+    <section class="sec" ${sk.body ? "" : "hidden"}><h3>The skill</h3><div class="skill">
       <label>Name<input type="text" id="skName" value="${esc(sk.name)}"></label>
       <label>Description: decides when the AI uses it<input type="text" id="skDesc" value="${esc(sk.description)}"></label>
       <label>Body<textarea id="skBody">${esc(sk.body)}</textarea></label>
+      ${(sk.files || []).length ? `<div class="files"><p class="label" style="margin:6px 0">Files that come with the skill</p>${sk.files.map(f => `<details><summary><code>${esc(f.path)}</code></summary><pre class="proposal">${esc(f.content)}</pre></details>`).join("")}</div>` : ""}
       <div class="path" id="skPath"></div>
     </div></section>
     <div class="actions" id="actions">
-      <button class="go" id="approve" type="button">Learn this skill</button>
+      <button class="go" id="approve" type="button" ${sk.body ? "" : "hidden"}>Learn this skill</button>
       <button class="ghost" id="reject" type="button">Reject</button>
       <button class="ghost danger" id="discard" type="button">Delete card</button>
       <span class="slot" id="cardSlot"></span>
