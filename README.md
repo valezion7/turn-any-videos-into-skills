@@ -19,9 +19,17 @@ Give it a video that teaches something. You get a learning card to read, and a s
 
 *[Leggi in italiano](README.it.md)* · **[Why I built it, and what the cards caught](https://github.com/valezion7/turn-any-videos-into-skills/discussions/1)** · [Discussions](https://github.com/valezion7/turn-any-videos-into-skills/discussions)
 
+![TAVIS on a YouTube video about AI image ads: verdict 'partly new ability', with what is new for your AI and four tools checked online](docs/example-ads-card.png)
+
+*A real card for Mike Futia's "How To Create Stunning AI Image Ads with AI (Claude Code + Nano Banana 2)". Verdict: **partly new ability**. Your AI already knows how to research a brand and call an API. What it did not know: the Nano Banana 2 endpoints on fal and their parameters, the price, the three-phase pipeline and what broke when the creator actually ran it. Every tool was checked on its official page. [The full example, and the test that proves the skill works, is below.](#a-real-example-static-ads-with-nano-banana-2)*
+
+<details><summary>And when the answer is no</summary>
+
 ![TAVIS on a TikTok video: verdict 'not worth it', with warnings about a comment-for-DM promotion, unproven savings and an install command received by DM](docs/card.png)
 
 *A real card, in Italian (the card language is your choice), for a 46-second TikTok with no subtitles, transcribed by local Whisper. Verdict: **not worth a skill**. It is a "comment HEADROOM and I'll DM you the link" promo. TAVIS flags the unproven 60-90% savings and warns against pasting an install command received by DM into Claude Code. It also points out that on a flat subscription those token savings are not money. On a 23-minute YouTube video called "Unlock Claude God-Mode", it kept the prompting method and flagged the sponsor with its affiliate link, the course being sold and the numbers nobody can check. Nothing reaches Claude until you click Approve.*
+
+</details>
 
 ---
 
@@ -185,6 +193,26 @@ This opens a browser window with its own profile, straight on TikTok's **QR code
 | `--lang` / Card language | `en` | `it`, `es`, `fr`, `de`, `pt` |
 | `--keep DIR` | off | keep subtitles and audio instead of deleting them |
 | `TAVIS_VERIFY_ONLINE` | `1` | with Claude Code, check the tools on their official pages (web search and page reading only). `0` turns it off |
+
+## A real example: static ads with Nano Banana 2
+
+The video: [How To Create Stunning AI Image Ads with AI (Claude Code + Nano Banana 2)](https://www.youtube.com/watch?v=tFyKaGP64M4) by Mike Futia, 20 minutes. The card is at the top of this page. Here are the warnings TAVIS attached to it:
+
+![Warnings on the same card: the templates sit behind a paid link, the results were hand-picked, the API key was pasted into the script, the sample ads had invented testimonials](docs/example-ads-warnings.png)
+
+The warnings did not kill the skill, they shaped it. The skill that came out, `brand-static-ad-batch`, keeps the API key in an environment variable, never invents reviews or offers, and rebuilds the templates the video only sells. It is in [`examples/brand-static-ad-batch`](examples/brand-static-ad-batch), with its three helper files: a brand DNA template, the prompts file schema and a run checklist.
+
+**Does it teach the AI something?** We installed it and gave Claude Code a real job, without naming the skill: *"I run the web studio at studiobeezy.com. I want to batch-produce static image ads for it with Nano Banana 2. Do the brand research and write the ad prompts for 5 test concepts. Do not install anything and do not call any paid API yet."*
+
+In about two minutes Claude Code:
+
+- **picked the skill by itself** from its description, and followed it step by step;
+- wrote the brand DNA from the live site, with colours, fonts, tone, the real claims and **where each one comes from**, plus a list of things the ads must not say;
+- wrote 5 prompts in the skill's schema (4:5 at 1K, the exact on-image copy, the reference photos for each one) and a script for the fal edit endpoint with a **dry run** that sends nothing;
+- **left out** what it could not back up: no invented reviews or numbers, no claim it could not verify, no third-party trademark;
+- **stopped and asked** before spending money: install `fal-client`, create a fal key yourself and keep it in `FAL_KEY`, approve the copy and the cost (5 × $0.08).
+
+That is the difference between a summary of a video and a new ability: the AI did not just know about the pipeline, it ran it the way the video's creator learned to, and avoided the traps he fell into.
 
 ## A full example
 

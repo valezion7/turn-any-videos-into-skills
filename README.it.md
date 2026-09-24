@@ -18,9 +18,17 @@ Gli dai un video che insegna qualcosa. Ne esce una scheda da leggere e, se la ap
 
 *[Read in English](README.md)* · **[Perché l'ho fatto, e cosa hanno scoperto le schede](https://github.com/valezion7/turn-any-videos-into-skills/discussions/1)** (in inglese) · [Discussions](https://github.com/valezion7/turn-any-videos-into-skills/discussions)
 
+![TAVIS su un video YouTube sulle ads fatte con l'AI: verdetto 'abilità in parte nuova', con le novità per la tua AI e quattro strumenti controllati online](docs/example-ads-card.png)
+
+*Una scheda vera su "How To Create Stunning AI Image Ads with AI (Claude Code + Nano Banana 2)" di Mike Futia. Verdetto: **abilità in parte nuova**. Fare ricerca su un brand e chiamare un'API la tua AI lo sa già. Quello che non sapeva: gli endpoint di Nano Banana 2 su fal e i loro parametri, il prezzo, la pipeline in tre fasi e cosa si è rotto quando il creator l'ha usata davvero. Ogni strumento è stato controllato sulla sua pagina ufficiale. [Più sotto l'esempio completo e la prova che la skill funziona.](#un-esempio-vero-ads-statiche-con-nano-banana-2)*
+
+<details><summary>E quando la risposta è no</summary>
+
 ![TAVIS su un video TikTok: verdetto 'non vale', con avvertimenti su una promozione a colpi di DM, risparmi non dimostrati e un comando d'installazione ricevuto in privato](docs/card.png)
 
 *Una scheda vera, su un TikTok di 46 secondi senza sottotitoli, trascritto da Whisper in locale. Verdetto: **non vale una skill**. È un "commenta HEADROOM e ti mando il link in DM" che promuove un tool. TAVIS segnala che il risparmio del 60-90% non è dimostrato e che non conviene incollare in Claude Code un comando d'installazione ricevuto in privato. Fa notare anche che, con un abbonamento fisso, quel risparmio di token non vale soldi. Su un video YouTube di 23 minuti, "Unlock Claude God-Mode", ha tenuto il metodo per scrivere prompt e ha segnalato lo spot con link affiliato, il corso in vendita e i numeri che nessuno può verificare. A Claude non arriva niente finché non premi Approva.*
+
+</details>
 
 ---
 
@@ -157,6 +165,26 @@ tavis login
 Si apre una finestra del browser con un profilo tutto suo, direttamente sul **QR code** di TikTok. Lo inquadri con l'app TikTok dal telefono ed è fatto: nessuna password scritta da nessuna parte. In quella finestra funzionano anche gli altri modi di accesso di TikTok. TAVIS aspetta il cookie di sessione di TikTok e salva **solo i cookie di tiktok.com** in `~/.tavis/cookies.txt`. Nell'interfaccia fa lo stesso il bottone **TikTok** in alto.
 
 > Perché non usa il tuo Chrome di tutti i giorni? Su Windows Chrome tiene bloccato il database dei cookie mentre è aperto, e lo cifra con una chiave che solo lui sa leggere: `yt-dlp --cookies-from-browser chrome` lì fallisce. Su macOS o Linux con Firefox funziona anche `export TAVIS_COOKIES_FROM_BROWSER=firefox`.
+
+## Un esempio vero: ads statiche con Nano Banana 2
+
+Il video: [How To Create Stunning AI Image Ads with AI (Claude Code + Nano Banana 2)](https://www.youtube.com/watch?v=tFyKaGP64M4) di Mike Futia, 20 minuti. La scheda è in cima alla pagina. Questi sono gli avvertimenti che TAVIS ci ha messo:
+
+![Gli avvertimenti della stessa scheda: i template sono dietro un link a pagamento, i risultati sono scelti a mano, la chiave API era incollata nello script, le ads di esempio avevano recensioni inventate](docs/example-ads-warnings.png)
+
+Gli avvertimenti non hanno ucciso la skill, le hanno dato forma. La skill uscita, `brand-static-ad-batch`, tiene la chiave API in una variabile d'ambiente, non inventa mai recensioni o offerte e ricostruisce i template che il video si limita a vendere. È in [`examples/brand-static-ad-batch`](examples/brand-static-ad-batch), con i suoi tre file: un modello per il DNA del brand, lo schema del file dei prompt e una checklist per il lancio.
+
+**Insegna davvero qualcosa all'AI?** L'abbiamo installata e abbiamo dato a Claude Code un lavoro vero, senza nominare la skill: *"Ho uno studio web, studiobeezy.com. Voglio produrre in serie delle ads statiche con Nano Banana 2. Fai la ricerca sul brand e scrivi i prompt per 5 concept di prova. Non installare niente e non chiamare API a pagamento."*
+
+In circa due minuti Claude Code:
+
+- **ha scelto la skill da solo** leggendone la descrizione, e l'ha seguita passo per passo;
+- ha scritto il DNA del brand dal sito vero, con colori, font, tono, le affermazioni reali e **da dove viene ognuna**, più una lista di cose che le ads non devono dire;
+- ha scritto 5 prompt nello schema della skill (4:5 a 1K, il testo esatto sull'immagine, le foto di riferimento per ciascuno) e uno script per l'endpoint di fal con una **prova a vuoto** che non invia niente;
+- **ha lasciato fuori** quello che non poteva dimostrare: niente recensioni o numeri inventati, niente affermazioni non verificabili, niente marchi di altri;
+- **si è fermato a chiedere** prima di spendere: installare `fal-client`, creare tu la chiave fal e tenerla in `FAL_KEY`, approvare i testi e il costo (5 × $0,08).
+
+È la differenza tra il riassunto di un video e un'abilità nuova: l'AI non sapeva solo che la pipeline esiste, l'ha eseguita come l'ha imparata il creator, evitando le trappole in cui è caduto lui.
 
 ## Tutti i comandi
 
