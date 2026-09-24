@@ -16,7 +16,7 @@ Gli dai un video che insegna qualcosa. Ne esce una scheda da leggere e, se la ap
 ![Versione](https://img.shields.io/badge/version-0.3.0-0B0A09.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-0B0A09.svg)
 
-*[Read in English](README.md)*
+*[Read in English](README.md)* · **[Perché l'ho fatto, e cosa hanno scoperto le schede](https://github.com/valezion7/turn-any-videos-into-skills/discussions/1)** (in inglese) · [Discussions](https://github.com/valezion7/turn-any-videos-into-skills/discussions)
 
 ![TAVIS su un video TikTok: verdetto 'non vale', con avvertimenti su una promozione a colpi di DM, risparmi non dimostrati e un comando d'installazione ricevuto in privato](docs/card.png)
 

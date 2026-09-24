@@ -17,7 +17,7 @@ Give it a video that teaches something. You get a learning card to read, and a s
 ![Python](https://img.shields.io/badge/python-3.9%2B-0B0A09.svg)
 [![Stars](https://img.shields.io/github/stars/valezion7/turn-any-videos-into-skills?style=social)](https://github.com/valezion7/turn-any-videos-into-skills)
 
-*[Leggi in italiano](README.it.md)*
+*[Leggi in italiano](README.it.md)* · **[Why I built it, and what the cards caught](https://github.com/valezion7/turn-any-videos-into-skills/discussions/1)** · [Discussions](https://github.com/valezion7/turn-any-videos-into-skills/discussions)
 
 ![TAVIS on a TikTok video: verdict 'not worth it', with warnings about a comment-for-DM promotion, unproven savings and an install command received by DM](docs/card.png)
 
