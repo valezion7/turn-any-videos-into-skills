@@ -348,8 +348,17 @@ def _skill_fields(s):
 
 
 def serve(port=4747, open_browser=True):
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{port}"
+    import socket
+    with socket.socket() as probe:  # bind alone won't tell: Windows lets two servers share the port
+        running = probe.connect_ex(("127.0.0.1", port)) == 0
+    if running:  # a second click on the desktop icon: just show the open one
+        print(f"  TAVIS is already running at {url}", flush=True)
+        if open_browser:
+            import webbrowser
+            webbrowser.open(url)
+        return
+    httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     print(f"  TAVIS is running at {url}   (Ctrl+C to stop)", flush=True)
     if open_browser:
         import webbrowser

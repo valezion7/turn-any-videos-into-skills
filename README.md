@@ -43,7 +43,7 @@ cd turn-any-videos-into-skills
 bash install.sh --all
 ```
 
-`--all` adds the TikTok login window and local Whisper. The core alone is `bash install.sh`. Everything goes into a `.venv` inside the folder, including the small JavaScript engine YouTube needs (so you do not need Node), and the `tavis` command goes into `~/bin`.
+`--all` adds the TikTok login window and local Whisper. The core alone is `bash install.sh`. Everything goes into a `.venv` inside the folder, including the small JavaScript engine YouTube needs (so you do not need Node), and the `tavis` command goes into `~/bin`. You also get a **TAVIS icon** on your desktop (and in the Start menu on Windows, the app list on Linux; a `TAVIS.command` on macOS): double-click it and the interface opens. Clicking it again while TAVIS runs just brings the page back.
 
 ## Use it in 30 seconds
 

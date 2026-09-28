@@ -42,7 +42,7 @@ cd turn-any-videos-into-skills
 bash install.sh --all
 ```
 
-`--all` aggiunge la finestra di accesso a TikTok e Whisper locale. Per il solo nucleo basta `bash install.sh`. Tutto finisce in una `.venv` dentro la cartella, compreso il piccolo motore JavaScript che serve a YouTube (quindi Node non serve). Il comando `tavis` va in `~/bin`.
+`--all` aggiunge la finestra di accesso a TikTok e Whisper locale. Per il solo nucleo basta `bash install.sh`. Tutto finisce in una `.venv` dentro la cartella, compreso il piccolo motore JavaScript che serve a YouTube (quindi Node non serve). Il comando `tavis` va in `~/bin`. Trovi anche l'**icona di TAVIS** sul desktop (e nel menu Start su Windows, tra le app su Linux; un `TAVIS.command` su macOS): doppio clic e si apre l'interfaccia. Se TAVIS è già aperto, un altro clic riporta solo la pagina.
 
 ## In 30 secondi
 

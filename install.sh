@@ -82,6 +82,32 @@ PYTHONPATH="$DIR\${PYTHONPATH:+:\$PYTHONPATH}" exec "$VPY" -m tavis "\$@"
 EOF
 chmod +x "$HOME/bin/tavis"
 
+# A TAVIS icon on the desktop (and in the Start menu / app list): double-click opens the interface.
+if command -v powershell.exe >/dev/null 2>&1; then
+  WDIR="$(cygpath -w "$DIR")"
+  powershell.exe -NoProfile -Command "
+    \$w = New-Object -ComObject WScript.Shell
+    foreach (\$f in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) {
+      \$s = \$w.CreateShortcut((Join-Path \$f 'TAVIS.lnk'))
+      \$s.TargetPath = '$WDIR\\.venv\\Scripts\\python.exe'
+      \$s.Arguments = '-m tavis'
+      \$s.WorkingDirectory = '$WDIR'
+      \$s.IconLocation = '$WDIR\\tavis\\tavis.ico'
+      \$s.Description = 'TAVIS - turn any video into a skill'
+      \$s.Save()
+    }" && echo "  TAVIS icon added to your desktop and Start menu"
+elif [ "$(uname)" = Darwin ]; then
+  printf '#!/bin/bash\ncd "%s" && exec "%s" -m tavis\n' "$DIR" "$VPY" > "$HOME/Desktop/TAVIS.command"
+  chmod +x "$HOME/Desktop/TAVIS.command" && echo "  TAVIS.command added to your desktop"
+else
+  APPS="$HOME/.local/share/applications"; mkdir -p "$APPS"
+  printf '[Desktop Entry]\nType=Application\nName=TAVIS\nComment=Turn any video into a skill\nExec=%s -m tavis\nPath=%s\nIcon=%s/tavis/tavis.png\nTerminal=true\n' \
+    "$VPY" "$DIR" "$DIR" > "$APPS/tavis.desktop"
+  chmod +x "$APPS/tavis.desktop"
+  [ -d "$HOME/Desktop" ] && cp "$APPS/tavis.desktop" "$HOME/Desktop/" && chmod +x "$HOME/Desktop/tavis.desktop"
+  echo "  TAVIS added to your app list"
+fi
+
 echo
 PYTHONPATH="$DIR" "$VPY" -c "from tavis.art import banner, prepare_console; prepare_console(); print(banner())"
 echo
